@@ -38,24 +38,37 @@ image is then consumed by:
 
 \begin{figure}[t]
 \centering
-\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,frame=single,framerule=0.4pt,framesep=4pt]
-                       +-----------------------------+
-        client (k6) -->|  Application Load Balancer  |
-                       +--+----------+---------+-----+
-                          | /ec2/*   | /fargate/*    | /lambda/*
-                          v          v               v
-                  +-----------+ +------------+ +----------------+
-                  |  EC2 ASG  | |   Fargate  | | Lambda (image) |
-                  |  t3.small | | 0.5 vCPU   | | 1 GB / x86_64  |
-                  |  x86_64   | | 1 GB       | |                |
-                  +-----+-----+ +-----+------+ +--------+-------+
-                        \             |                /
-                         +----->  DynamoDB  <---------+
-                              (PAY_PER_REQUEST)
-\end{lstlisting}
-\caption{Each paradigm runs the same image, talks to the same DynamoDB
-  table, and is fronted by listener rules on a single ALB. Cost is
-  isolated to the compute layer.}
+\begin{tikzpicture}[
+  font=\footnotesize,
+  node distance=10pt and 22pt,
+  box/.style={draw=black!70, thick, rounded corners=2pt, align=center,
+              minimum width=70pt, minimum height=28pt, fill=white},
+  alb/.style={draw=blue!50!black, very thick, fill=blue!8, rounded corners=2pt,
+              minimum width=270pt, minimum height=22pt, align=center, font=\small\bfseries},
+  ddb/.style={draw=orange!70!black, very thick, fill=orange!10, rounded corners=2pt,
+              minimum width=200pt, minimum height=22pt, align=center, font=\small\bfseries},
+  client/.style={draw=black, dashed, rounded corners=2pt, minimum width=80pt,
+                 minimum height=22pt, align=center},
+  arrow/.style={-{Stealth}, thick},
+]
+  \node[client] (cl) {client \texttt{c5.large}\\(k6 worker)};
+  \node[alb, right=of cl] (alb) {Application Load Balancer};
+  \node[box, below=20pt of alb.south west, anchor=north west] (ec2)  {EC2 ASG\\\scriptsize t3.small {\textbullet} x86\_64};
+  \node[box, right=of ec2]                                         (fg)   {ECS Fargate\\\scriptsize 0.5\,vCPU {\textbullet} 1\,GB};
+  \node[box, right=of fg]                                          (lam)  {Lambda (image)\\\scriptsize 1\,GB {\textbullet} x86\_64};
+  \node[ddb, below=20pt of fg] (ddb) {DynamoDB (PAY\_PER\_REQUEST)};
+
+  \draw[arrow] (cl) -- (alb);
+  \draw[arrow] (alb.south) ++(-90pt,0) -- node[left,font=\scriptsize]{/ec2/*}     (ec2.north);
+  \draw[arrow] (alb.south)              -- node[right,font=\scriptsize]{/fargate/*} (fg.north);
+  \draw[arrow] (alb.south) ++( 90pt,0) -- node[right,font=\scriptsize]{/lambda/*} (lam.north);
+  \draw[arrow] (ec2.south) -- (ddb.west |- ec2.south) -- (ddb.west);
+  \draw[arrow] (fg.south)  -- (ddb.north);
+  \draw[arrow] (lam.south) -- (ddb.east |- lam.south) -- (ddb.east);
+\end{tikzpicture}
+\caption{One container image, three runtimes, one ALB. The same FastAPI
+binary serves all three paths; routing is by ALB listener-rule. Storage
+is shared so cost differences are confined to the compute layer.}
 \label{fig:arch}
 \end{figure}
 
