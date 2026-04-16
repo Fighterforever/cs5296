@@ -187,3 +187,41 @@ def plot_cost_pareto():
 
     out = pd.DataFrame({"rps": rps_grid, "ec2_usd_mo": ec2_1, "fargate_usd_mo": fg_1, "lambda_usd_mo": lb_1})
     out.to_csv(FIG_DIR / "cost_curves.csv", index=False)
+
+
+def plot_pareto(runs):
+    """Cost-vs-p95-latency Pareto plot. Uses real measurements when available
+    by joining each platform's mean p95 across the steady sweep with the cost
+    model. Cost is normalised to USD per million requests at 100 RPS."""
+    rows = []
+    rps_for_cost = 100.0
+    for r in [x for x in runs if x.scenario == "steady"]:
+        df = load_csv(r.csv_path)
+        if df.empty:
+            continue
+        p95 = float(np.percentile(df["lat_ms"].to_numpy(), 95))
+        p50 = float(np.percentile(df["lat_ms"].to_numpy(), 50))
+        ci = CostInput(rps=rps_for_cost, ratio_reads=0.7, p50_ms=p50, p95_ms=p95)
+        if r.platform == "ec2":
+            cost = cost_ec2(ci, instances=1) * 12  # annual to make numbers readable
+        elif r.platform == "fargate":
+            cost = cost_fargate(ci, tasks=1) * 12
+        else:
+            cost = cost_lambda(ci) * 12
+        usd_per_million = cost / (rps_for_cost * 3600 * 730 * 12) * 1e6
+        rows.append({"platform": r.platform, "p95_ms": p95, "usd_per_M": usd_per_million})
+    if not rows:
+        return
+    tbl = pd.DataFrame(rows)
+    fig, ax = plt.subplots(figsize=(5.5, 3.4))
+    for plat, sub in tbl.groupby("platform"):
+        ax.scatter(sub["p95_ms"], sub["usd_per_M"], s=120, color=PLATFORM_COLORS.get(plat), label=PLATFORM_LABELS.get(plat, plat), edgecolor="black", linewidth=0.5, zorder=3)
+        for _, row in sub.iterrows():
+            ax.annotate(PLATFORM_LABELS.get(plat, plat), (row["p95_ms"], row["usd_per_M"]), xytext=(6, 4), textcoords="offset points", fontsize=8)
+    ax.set_xlabel("p95 latency (ms, lower is better)")
+    ax.set_ylabel("USD per 1M requests (lower is better)")
+    ax.set_xscale("log"); ax.set_yscale("log")
+    ax.grid(True, which="both", alpha=0.3)
+    fig.tight_layout()
+    save(fig, "cost_latency_pareto")
+    tbl.to_csv(FIG_DIR / "cost_latency_pareto.csv", index=False)

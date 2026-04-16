@@ -102,3 +102,21 @@ or the hourly billing of EC2 wins.
     break-even points discussed in the text.}
   \label{fig:cost}
 \end{figure}
+
+\Cref{fig:pareto} reduces the steady-state measurements to a single
+Pareto chart: for each platform we plot the achieved p95 latency
+against the cost per million requests (using \cref{eq:cost}
+calibrated with our measured median execution time) at $\rho{=}100$\,RPS.
+EC2 and Fargate sit at the lower-left of the chart; Lambda lies
+strictly above and to the right of both. At higher $\rho$ the
+points slide along the curves of \cref{fig:cost} and the dominance
+relation can flip --- which is the practical content of the
+break-even analysis.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.78\linewidth]{figures/cost_latency_pareto}
+  \caption{Cost-vs-latency Pareto plot at 100\,RPS sustained traffic;
+    lower and lefter is better.}
+  \label{fig:pareto}
+\end{figure}

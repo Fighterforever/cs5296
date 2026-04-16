@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 
 from .load import RESULTS_DIR, list_runs
-from .plots import _setup, plot_coldstart, plot_cost_pareto, plot_elasticity, plot_steady
+from .plots import _setup, plot_coldstart, plot_cost_pareto, plot_elasticity, plot_pareto, plot_steady
 
 
 def _synth():
@@ -92,6 +92,7 @@ def main(run_id: str | None = None):
     plot_elasticity(runs)
     plot_coldstart(runs)
     plot_cost_pareto()
+    plot_pareto(runs)
     print(">> figures written to report/figures/")
 
 
