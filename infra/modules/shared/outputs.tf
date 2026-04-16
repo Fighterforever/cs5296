@@ -1,0 +1,12 @@
+output "vpc_id" { value = data.aws_vpc.default.id }
+output "public_subnet_ids" { value = data.aws_subnets.default.ids }
+output "alb_sg_id" { value = aws_security_group.alb.id }
+output "app_sg_id" { value = aws_security_group.app.id }
+output "alb_dns" { value = aws_lb.main.dns_name }
+output "alb_arn" { value = aws_lb.main.arn }
+output "ec2_target_group_arn" { value = aws_lb_target_group.ec2.arn }
+output "fargate_target_group_arn" { value = aws_lb_target_group.fargate.arn }
+output "lambda_target_group_arn" { value = aws_lb_target_group.lambda.arn }
+output "ecr_repo_url" { value = aws_ecr_repository.app.repository_url }
+output "ddb_table_name" { value = aws_dynamodb_table.links.name }
+output "instance_profile_name" { value = data.aws_iam_instance_profile.lab.name }

@@ -1,0 +1,14 @@
+variable "name_prefix" { type = string }
+variable "lab_role_arn" { type = string }
+variable "vpc_id" { type = string }
+variable "subnet_ids" { type = list(string) }
+variable "app_sg_id" { type = string }
+variable "alb_target_group" { type = string }
+variable "ecr_repo_url" { type = string }
+variable "image_tag" { type = string }
+variable "ddb_table" { type = string }
+variable "cpu" { type = number }
+variable "memory" { type = number }
+variable "min_count" { type = number }
+variable "max_count" { type = number }
+variable "region" { type = string }

@@ -1,0 +1,12 @@
+region                         = "us-east-1"
+account_id                     = "REPLACE_WITH_YOUR_ACCOUNT_ID"
+image_tag                      = "v1"
+ec2_instance_type              = "t3.small"
+ec2_min_size                   = 1
+ec2_max_size                   = 6
+fargate_cpu                    = 512
+fargate_memory                 = 1024
+fargate_min_count              = 1
+fargate_max_count              = 10
+lambda_memory_mb               = 1024
+lambda_provisioned_concurrency = 0
