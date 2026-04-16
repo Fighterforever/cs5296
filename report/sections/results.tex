@@ -1,6 +1,28 @@
 \section{Results}
 \label{sec:results}
 
+\Cref{tab:headline} pre-summarises the four headline numbers per
+paradigm; the rest of the section explains how each was measured.
+
+\begin{table}[h]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.05}
+\begin{tabular}{lrrrr}
+\toprule
+                        & \textbf{p95 lat.\,@\,200\,RPS} & \textbf{p99 lat.\,@\,400\,RPS} & \textbf{TTSS\,@\,400\,RPS} & \textbf{Cold-start p99} \\
+\midrule
+EC2 (t3.small ASG)      & 14\,ms             & 58\,ms             & $\sim$45\,s        & n/a (warm) \\
+ECS Fargate (0.5\,vCPU) & 18\,ms             & 75\,ms             & $\sim$25\,s        & n/a (warm) \\
+AWS Lambda (1\,GB)      & 90\,ms             & 220\,ms            & $<$10\,s           & 11\,s \\
+\bottomrule
+\end{tabular}
+\caption{Headline measurements. TTSS = time to steady state under our
+step-arrival burst. Cold-start refers to a fresh container spawn.}
+\label{tab:headline}
+\end{table}
+
 \subsection{Steady-state throughput and latency}
 \label{sec:results-steady}
 
@@ -96,27 +118,20 @@ or the hourly billing of EC2 wins.
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=\linewidth]{figures/cost_vs_rps}
-  \caption{Predicted monthly compute-only cost vs.\ sustained RPS
-    using the model of \cref{eq:cost}. Crossover annotations are the
-    break-even points discussed in the text.}
+  \begin{subfigure}{0.58\linewidth}
+    \includegraphics[width=\linewidth]{figures/cost_vs_rps}
+    \caption{Monthly compute-only cost vs.\ RPS}
+    \label{fig:cost-curves}
+  \end{subfigure}\hfill
+  \begin{subfigure}{0.40\linewidth}
+    \includegraphics[width=\linewidth]{figures/cost_latency_pareto}
+    \caption{Cost vs.\ p95 latency at 100\,RPS}
+    \label{fig:pareto}
+  \end{subfigure}
+  \caption{(a) Predicted monthly compute-only cost from
+    \cref{eq:cost} with crossover annotations.  (b) Pareto chart at
+    100\,RPS: EC2 and Fargate are jointly Pareto-optimal; Lambda is
+    dominated at this rate but takes the lead below the break-even
+    point on the left panel.}
   \label{fig:cost}
-\end{figure}
-
-\Cref{fig:pareto} reduces the steady-state measurements to a single
-Pareto chart: for each platform we plot the achieved p95 latency
-against the cost per million requests (using \cref{eq:cost}
-calibrated with our measured median execution time) at $\rho{=}100$\,RPS.
-EC2 and Fargate sit at the lower-left of the chart; Lambda lies
-strictly above and to the right of both. At higher $\rho$ the
-points slide along the curves of \cref{fig:cost} and the dominance
-relation can flip --- which is the practical content of the
-break-even analysis.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.78\linewidth]{figures/cost_latency_pareto}
-  \caption{Cost-vs-latency Pareto plot at 100\,RPS sustained traffic;
-    lower and lefter is better.}
-  \label{fig:pareto}
 \end{figure}

@@ -1,30 +1,20 @@
 \section{Related Work}
 \label{sec:related}
 
-Comparative measurements of cloud compute paradigms have been a steady
-research thread for nearly a decade. Wang et al.~\cite{peeking-serverless}
-characterised the runtime behaviour of major FaaS providers,
-exposing the wide variation in cold-start times across vendors and
-runtime sizes. McGrath and Brenner~\cite{mcgrath-faas} compared early
-serverless platforms and proposed a hybrid scheduler that pre-warms
-containers based on a workload predictor; their cold-start results are
-qualitatively consistent with what we measured for the 2026
-generation of AWS Lambda.
-
+Comparative measurements of cloud compute paradigms are a long-running
+thread. Wang et al.~\cite{peeking-serverless} characterised FaaS
+runtime behaviour and exposed wide variation in cold-start times across
+vendors and runtime sizes; McGrath and Brenner~\cite{mcgrath-faas}
+proposed pre-warming based on workload prediction.
 Eismann et al.~\cite{eismann2021review} systematise serverless
-performance studies and identify a recurring weakness in the
-literature: the comparison points are rarely identical applications,
-which leaves any cross-paradigm conclusions vulnerable to
-implementation differences. Our use of one OCI image across three
-runtimes via the AWS Lambda Web Adapter~\cite{lambda-web-adapter} is a
-direct response to this critique.
-
+performance studies and identify a recurring weakness: the comparison
+points are rarely identical applications. Our use of a single OCI
+image across three runtimes via the AWS Lambda Web
+Adapter~\cite{lambda-web-adapter} directly addresses that critique.
 For cost analysis, Adzic and Chatley~\cite{adzic-serverless} examined
-the conditions under which serverless wins over EC2 for production
-workloads at MindMup; their break-even RPS is in the same order of
-magnitude as ours but for a Java workload with very different
-$\overline{t}$. Closer to our exact configuration, Cordingly et
+the conditions under which serverless wins over EC2 for a Java
+workload at MindMup; their break-even RPS is in the same order of
+magnitude as ours but for very different $\overline{t}$. Cordingly et
 al.~\cite{cordingly2020lambda} ran a measurement study of Lambda's
-billing model and the impact of memory selection, which informed our
-decision to run the headline configuration at 1\,GB rather than the
+billing model that informed our choice of 1\,GB rather than the
 128\,MB minimum.
