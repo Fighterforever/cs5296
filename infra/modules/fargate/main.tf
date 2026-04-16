@@ -24,6 +24,7 @@ resource "aws_ecs_task_definition" "app" {
       portMappings = [{ containerPort = 8080, hostPort = 8080, protocol = "tcp" }]
       environment = [
         { name = "PLATFORM", value = "fargate" },
+        { name = "PATH_PREFIX", value = "/fargate" },
         { name = "DDB_TABLE", value = var.ddb_table },
         { name = "AWS_REGION", value = var.region },
       ]

@@ -16,6 +16,7 @@ from .storage import Storage, build_storage
 APP_STARTED = time.time()
 HOSTNAME = socket.gethostname()
 PLATFORM = os.environ.get("PLATFORM", "unknown")
+PATH_PREFIX = os.environ.get("PATH_PREFIX", "").rstrip("/")
 
 
 class ShortenIn(BaseModel):
@@ -69,6 +70,17 @@ def build_app(storage: Storage | None = None) -> FastAPI:
         for _ in range(rounds):
             data = hashlib.sha256(data).digest()
         return {"rounds": rounds, "digest": data.hex()[:16], "platform": PLATFORM}
+
+    if PATH_PREFIX:
+        @app.middleware("http")
+        async def strip_prefix(request: Request, call_next):
+            scope = request.scope
+            path = scope.get("path", "")
+            if path.startswith(PATH_PREFIX):
+                new_path = path[len(PATH_PREFIX):] or "/"
+                scope["path"] = new_path
+                scope["raw_path"] = new_path.encode("latin-1")
+            return await call_next(request)
 
     @app.middleware("http")
     async def add_platform_header(request: Request, call_next):

@@ -1,0 +1,68 @@
+\section{Introduction}
+\label{sec:intro}
+
+For a developer who needs to run a small HTTP service on AWS, the
+choice of compute primitive is uncomfortable. EC2~\cite{aws-ec2} gives
+predictable performance and the lowest unit price once an instance is
+busy, but shifts capacity planning and OS upkeep onto the user.  ECS
+Fargate~\cite{aws-fargate} hides that work but bills per vCPU-second of
+running task time. AWS Lambda~\cite{aws-lambda} bills per request and
+per GB-second with no idle cost, but introduces a cold-start penalty
+and a per-invocation overhead absent on long-running workers.
+
+Existing studies illuminate one part of this picture each.
+Wang et al.~\cite{peeking-serverless} characterise FaaS runtime behaviour,
+McGrath and Brenner~\cite{mcgrath-faas} compare cold-start strategies
+across early serverless platforms, and Eismann
+et al.~\cite{eismann2021review} review serverless performance studies.
+None of these compare the \emph{three native AWS deployment
+families} side-by-side under a workload that is identical down to the
+container image. That is what we set out to do.
+
+\paragraph{Methodology in one sentence.} We package a stateless URL
+shortener (\texttt{FastAPI} + DynamoDB) as a single OCI container image,
+attach the AWS Lambda Web Adapter so the same image runs on a Lambda
+container function as well as on EC2 and Fargate, and put all three
+deployments behind a shared Application Load Balancer. A
+\texttt{c5.large} k6 worker in the same availability zone exercises the
+endpoints under four scenarios.
+
+\paragraph{Contributions.} The work makes four contributions:
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item A reproducible benchmarking harness in which the same image is
+        deployed to EC2, Fargate, and Lambda from the same Terraform
+        codebase, runnable end-to-end inside the AWS Academy Learner Lab
+        environment that the course uses (\cref{sec:design}).
+  \item A measured comparison of throughput, p50/p95/p99 latency, and
+        elasticity across the three paradigms with bootstrap confidence
+        intervals on every percentile (\cref{sec:results-steady}).
+  \item A characterisation of Lambda cold-start behaviour for a 1\,GB
+        container function and its impact on burst latency
+        (Sections~\ref{sec:results-elasticity} and~\ref{sec:results-cold}).
+  \item An analytic cost model, calibrated against the measured
+        per-request latency, that yields explicit break-even points
+        between the three paradigms and a Pareto front of
+        cost-versus-latency choices (\cref{sec:results-cost}).
+\end{enumerate}
+
+\paragraph{Headline findings.} (i)~At every load level we sustained,
+EC2 keeps the tightest tail latency: its p99 sits under
+60\,ms at 500\,RPS while Lambda's exceeds 200\,ms even after warm-up.
+(ii)~Fargate scales out smoothly under a step-arrival burst and reaches
+steady-state in roughly 25\,s, against $\sim$45\,s for EC2 and
+$<$10\,s for Lambda once a few additional concurrent containers are
+spawned. (iii)~Lambda's first-request latency after a cold container
+spawn is dominated by image initialisation; we measured a median
+of $\sim$1.4\,s and a p99 of $\sim$11\,s for our 1\,GB container.
+(iv)~The cost cross-over points implied by our calibrated model put
+Lambda ahead of Fargate up to $\sim$17\,RPS and ahead of EC2 up to
+$\sim$60\,RPS for a workload of our latency profile.
+
+The remainder of the paper is organised as follows.
+\Cref{sec:background} situates the three paradigms and their billing.
+\Cref{sec:design} describes the application and the unified deployment
+pipeline. \Cref{sec:methodology} explains the workload, metrics, and
+statistical procedure. \Cref{sec:results} reports steady-state,
+elastic, cold-start, and cost results.
+Sections~\ref{sec:discussion}--\ref{sec:conclusion} discuss
+limitations, related work, and conclude.

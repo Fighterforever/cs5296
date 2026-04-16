@@ -1,0 +1,69 @@
+\appendix
+\section*{Artifact Appendix}
+\addcontentsline{toc}{section}{Artifact Appendix}
+\renewcommand{\thesubsection}{A.\arabic{subsection}}
+
+The complete artifact for this paper, including all source code,
+Terraform modules, k6 scenarios, the analysis pipeline, and the LaTeX
+sources of this report, is available at:
+
+\begin{center}
+\url{https://github.com/Fighterforever/cs5296}
+\end{center}
+
+\subsection{Software and hardware dependencies}
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+\item \textbf{Local toolchain:} OpenTofu~$\geq$1.6 (or Terraform~$\geq$1.6),
+      Docker~$\geq$24 with \texttt{buildx}, AWS CLI~v2, k6~v1, Python 3.12,
+      \texttt{latexmk} with a TeX Live distribution.
+\item \textbf{AWS:} a Learner Lab account (or any standard account with
+      permission to create EC2/ECS/Lambda/ALB/DynamoDB/ECR resources).
+\item \textbf{Repository layout:} \texttt{app/} application, \texttt{infra/}
+      Terraform, \texttt{benchmark/} k6, \texttt{analysis/} Python,
+      \texttt{report/} \LaTeX, \texttt{data/} raw output (git-ignored).
+\end{itemize}
+
+\subsection{Reproducing every figure}
+\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
+git clone https://github.com/Fighterforever/cs5296.git
+cd cs5296
+
+# 1. provision the three deployments behind a single ALB
+cd infra/envs/benchmark
+echo 'account_id = "<YOUR ACCOUNT ID>"' > terraform.tfvars
+tofu init && tofu apply -auto-approve
+
+# 2. build & push the same container image to ECR
+cd ../../../app
+ECR=$(cd ../infra/envs/benchmark && tofu output -raw ecr_repo_url)
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin $ECR
+docker buildx build --platform linux/amd64 --push -t $ECR:v2 .
+
+# 3. drive the benchmark from a co-located c5.large k6 worker
+cd ..
+EC2_URL=$(cd infra/envs/benchmark && tofu output -raw ec2_url) \
+FARGATE_URL=... LAMBDA_URL=... bash benchmark/run.sh
+
+# 4. build all figures and tables
+python -m analysis.build_figures
+
+# 5. compile the report
+make -C report
+\end{lstlisting}
+
+\subsection{Validation and expected output}
+After step~3 there is one JSON summary and one CSV trace file per
+\textit{(platform, scenario)} pair under
+\texttt{data/results/<run\_id>/}. After step~4, eight files appear in
+\texttt{report/figures/}: five PDF/PNG figure pairs
+(\texttt{steady\_latency\_vs\_rps}, \texttt{elasticity\_p95\_trace},
+\texttt{elasticity\_ttss}, \texttt{coldstart\_cdf}, \texttt{cost\_vs\_rps})
+plus three CSV tables of summary statistics. Step~5 produces
+\texttt{report/main.pdf}. The \texttt{make} command in the
+repository's top-level \texttt{Makefile} chains all five steps.
+
+\subsection{Tear-down}
+\texttt{tofu destroy -auto-approve} from \texttt{infra/envs/benchmark}
+removes every billable resource. The cumulative AWS spend for one
+full run of the matrix in our measurements was below \$1\,USD.

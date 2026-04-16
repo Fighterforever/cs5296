@@ -1,0 +1,68 @@
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Workload, scenarios, and tooling}
+
+We use \texttt{k6 v1.0}~\cite{k6} as the load generator. It is run on
+a dedicated \texttt{c5.large} EC2 instance in
+\texttt{us-east-1a}, the same availability zone as the targets, so that
+network jitter to the ALB is bounded by intra-AZ RTT (sub-millisecond
+in our pings). Each run begins with a thirty-second warm-up phase
+during which we issue 50~serial requests against \texttt{/healthz} on
+each platform to make sure the connection pools are full and any JIT
+state is hot. Per-request timings are recorded in CSV and a JSON
+summary (with bootstrapped percentile statistics) is recorded at the
+end. The four scenarios are:
+
+\begin{description}[leftmargin=1em,labelindent=0pt,itemsep=2pt]
+\item[Steady-state RPS sweep.] Constant arrival rate at
+      $\{50, 100, 250, 500\}$ RPS for 60\,s each.  We measure
+      end-to-end latency for the GET-redirect path.
+\item[Step-arrival burst.] One minute at 5\,RPS, three minutes at
+      400\,RPS, one minute back at 5\,RPS. The transition is what we
+      call ``elasticity'' and we estimate the time-to-steady-state
+      from the trace (see below).
+\item[Cold-start probe.] One virtual user issues 15 sequential GETs
+      with 45\,s gaps, designed to force a fresh container init for
+      Lambda. EC2 and Fargate are run with the same script as a
+      sanity baseline.
+\item[Mixed read/write.] 70\,\% GET-redirect, 30\,\% POST-shorten at
+      300\,RPS for two minutes; representative of a real shortener.
+\end{description}
+
+\subsection{Statistics}
+
+Per-request raw latency is highly non-normal (heavy right tail), so we
+report distribution percentiles rather than mean$\pm$sd. Confidence
+intervals on each percentile are computed by non-parametric bootstrap
+with $B{=}1000$ resamples and $\alpha{=}0.05$. The error bars in
+\cref{fig:steady} are these intervals.
+
+\paragraph{Time-to-steady-state.} We define the elasticity of a
+deployment as the elapsed time between the start of the burst and the
+first one-second bin whose p95 latency falls within $1.2\times$ of the
+\emph{post-transient steady value}, where the steady value is the
+median of the last 20\,\% of the burst window. Whenever no such bin
+exists --- which only happens for Lambda when burst RPS exceeds the
+account concurrency limit --- we record $\infty$.
+
+\paragraph{Cost model.} The cost analysis combines the AWS billing
+formulas of \cref{sec:background} with our measured median execution
+time. Concretely, for sustained $\rho$ RPS, our cost-per-month
+(USD) is
+\begin{equation}
+\label{eq:cost}
+\begin{aligned}
+C_{\text{EC2}}      &= n(\rho)\cdot p_{\text{ec2}}\cdot T \\
+C_{\text{Fargate}}  &= n(\rho)\cdot (v\cdot p_{\text{vCPU}} + g\cdot p_{\text{GB}})\cdot T \\
+C_{\text{Lambda}}   &= \rho\cdot T\cdot
+                       \bigl(p_{\text{req}} + g\cdot \overline{t}\cdot p_{\text{GB-s}}\bigr) + p_{\text{PC}}
+\end{aligned}
+\end{equation}
+
+with $n(\rho)$ the steady-state number of compute units required to
+sustain $\rho$ RPS at our measured saturation throughput, $T$ the
+month-hours, $\overline{t}$ the median execution time of a request,
+$g{=}1$\,GB and $v{=}0.5$ vCPU. Because DynamoDB and the ALB
+contribute the same cost to all three paradigms, we report the
+\emph{compute-only} cost when comparing them.

@@ -23,6 +23,7 @@ locals {
     docker run -d --name shortlink --restart always \
       -p 8080:8080 \
       -e PLATFORM=ec2 \
+      -e PATH_PREFIX=/ec2 \
       -e DDB_TABLE=${var.ddb_table} \
       -e AWS_REGION=${var.region} \
       "$IMAGE"

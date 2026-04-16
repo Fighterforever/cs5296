@@ -1,0 +1,84 @@
+\section{System Design and Deployment}
+\label{sec:design}
+
+\subsection{The application under test}
+
+We chose a URL-shortener for two reasons. It exercises a realistic mix
+of paths --- a write path (POST \texttt{/shorten}) that hashes the
+target URL and writes one row into DynamoDB, a read path
+(GET \texttt{/r/\{code\}}) that performs a single read-after-write
+followed by a 301 redirect, and a CPU-bound path (GET \texttt{/cpu})
+that hashes a configurable number of SHA-256 rounds so we can
+artificially shift the bottleneck off the network. It is also small
+enough that a single-image deployment fits comfortably within the
+Learner Lab's 5\,GB ECR quota and short enough to cold-start at all
+memory sizes Lambda offers.
+
+The service is implemented in \texttt{FastAPI}~\cite{fastapi} on
+Python~3.12. Storage is abstracted behind a small interface so that the
+unit tests can use an in-process dictionary and the cloud deployments
+use DynamoDB. Eight unit tests, including round-trip POST/GET tests and
+a verification of the prefix-stripping middleware that lets us route
+\texttt{/ec2/\dots}, \texttt{/fargate/\dots} and \texttt{/lambda/\dots}
+to the same application without rewriting URLs at the load balancer,
+all pass before deployment.
+
+\subsection{Unified deployment pipeline}
+
+\Cref{fig:arch} shows the topology. A \emph{single} container image
+(\texttt{shortlink:v2}) is built once with \texttt{docker buildx} for
+\texttt{linux/amd64} and pushed to a shared ECR repository. The same
+image is then consumed by:
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item an EC2 Auto Scaling Group of \texttt{t3.small} instances
+        running Amazon Linux~2023 with Docker;
+  \item an ECS Fargate service running 0.5\,vCPU\,/\,1\,GB tasks;
+  \item an AWS Lambda container function with 1\,GB of memory.
+\end{itemize}
+
+\begin{figure}[t]
+\centering
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,frame=single,framerule=0.4pt,framesep=4pt]
+                       +-----------------------------+
+        client (k6) -->|  Application Load Balancer  |
+                       +--+----------+---------+-----+
+                          | /ec2/*   | /fargate/*    | /lambda/*
+                          v          v               v
+                  +-----------+ +------------+ +----------------+
+                  |  EC2 ASG  | |   Fargate  | | Lambda (image) |
+                  |  t3.small | | 0.5 vCPU   | | 1 GB / x86_64  |
+                  |  x86_64   | | 1 GB       | |                |
+                  +-----+-----+ +-----+------+ +--------+-------+
+                        \             |                /
+                         +----->  DynamoDB  <---------+
+                              (PAY_PER_REQUEST)
+\end{lstlisting}
+\caption{Each paradigm runs the same image, talks to the same DynamoDB
+  table, and is fronted by listener rules on a single ALB. Cost is
+  isolated to the compute layer.}
+\label{fig:arch}
+\end{figure}
+
+\subsection{Adapting to the AWS Academy Learner Lab}
+
+The Learner Lab is a Vocareum-managed AWS sub-account that the course
+gives students. It is an unusual environment: IAM role creation is
+disabled, several APIs (notably public Lambda Function URLs) are
+blocked by an SCP, and the session token is rotated every four hours.
+Two design decisions follow:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
+  \item All Terraform modules reference the pre-existing
+        \texttt{LabRole} ARN as the execution role for EC2, Fargate, and
+        Lambda rather than creating a new role.
+  \item Lambda is exposed exclusively via an ALB target group. Public
+        Function URLs return \texttt{AccessDeniedException} in our lab,
+        despite a correct resource-policy configuration; the same code
+        works against an ALB-attached target. We use ALB-fronted
+        Lambda for all benchmarks reported in this paper to keep the
+        client-server data path identical across paradigms.
+\end{itemize}
+
+A single \texttt{tofu apply} provisions all 26 resources end-to-end in
+under five minutes, and \texttt{tofu destroy} returns the lab to a
+clean state.

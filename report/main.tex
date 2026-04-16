@@ -1,0 +1,97 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- packages ----------------------------------------------------------------
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{mathptmx}             % Times New Roman text + math
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+% lightweight cleveref shim so the document compiles with vanilla TeX Live
+% installations that do not have the cleveref package (e.g. BasicTeX).
+\providecommand{\cref}[1]{\ref{#1}}
+\providecommand{\Cref}[1]{Section~\ref{#1}}
+\usepackage{listings}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black,
+}
+
+\setlength{\parskip}{2pt}
+\setlength{\parindent}{0pt}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\setlength{\textfloatsep}{6pt plus 1pt minus 1pt}
+\setlength{\intextsep}{6pt plus 1pt minus 1pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+\usepackage{titlesec}
+\titlespacing*{\section}{0pt}{8pt plus 2pt minus 2pt}{4pt}
+\titlespacing*{\subsection}{0pt}{6pt plus 1pt minus 1pt}{2pt}
+\titlespacing*{\paragraph}{0pt}{4pt plus 1pt minus 1pt}{1em}
+
+\definecolor{lstkw}{HTML}{005CC5}
+\definecolor{lststr}{HTML}{032F62}
+\definecolor{lstcom}{HTML}{6A737D}
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{lstkw}\bfseries,
+  stringstyle=\color{lststr},
+  commentstyle=\color{lstcom}\itshape,
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  framesep=4pt,
+  framerule=0.4pt,
+  rulecolor=\color{black!15},
+  numbers=none,
+}
+
+% --- title -------------------------------------------------------------------
+\title{\vspace{-2.5em}\bfseries\large A Controlled, End-to-End Comparison of EC2, ECS Fargate, and AWS Lambda for Stateless Web Services\vspace{-0.4em}}
+
+\author{
+  \small Ma~Liyu\,(liyuma2,~59072966)\quad
+  Zheng~Junlan\,(junlzheng4,~59507980)\quad
+  Zheng~Zelan\,(zelazheng2,~59250714) \\[1pt]
+  \footnotesize Group~24 \,\textbar\, City University of Hong Kong \,\textbar\, CS5296 Cloud Computing, Spring 2026
+}
+
+\date{\vspace{-1em}\small\today\vspace{-0.6em}}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+\input{sections/abstract}
+\input{sections/intro}
+\input{sections/background}
+\input{sections/design}
+\input{sections/methodology}
+\input{sections/results}
+\input{sections/discussion}
+\input{sections/related}
+\input{sections/conclusion}
+
+{\footnotesize
+\setlength{\itemsep}{0pt plus 0.3pt}
+\bibliographystyle{ieeetr}
+\bibliography{refs}
+}
+
+\input{sections/appendix}
+
+\end{document}

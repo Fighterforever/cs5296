@@ -15,8 +15,9 @@ resource "aws_lambda_function" "app" {
 
   environment {
     variables = {
-      PLATFORM  = "lambda"
-      DDB_TABLE = var.ddb_table
+      PLATFORM    = "lambda"
+      PATH_PREFIX = "/lambda"
+      DDB_TABLE   = var.ddb_table
     }
   }
 
@@ -38,10 +39,8 @@ resource "aws_lambda_provisioned_concurrency_config" "live" {
 
 resource "aws_lambda_function_url" "live" {
   function_name      = aws_lambda_function.app.function_name
-  qualifier          = aws_lambda_alias.live.name
   authorization_type = "NONE"
-
-  invoke_mode = "BUFFERED"
+  invoke_mode        = "BUFFERED"
 }
 
 resource "aws_lambda_permission" "alb" {
@@ -51,6 +50,14 @@ resource "aws_lambda_permission" "alb" {
   qualifier     = aws_lambda_alias.live.name
   principal     = "elasticloadbalancing.amazonaws.com"
   source_arn    = var.alb_target_group
+}
+
+resource "aws_lambda_permission" "function_url" {
+  statement_id           = "AllowPublicFunctionUrl"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.app.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
 }
 
 resource "aws_lb_target_group_attachment" "lambda" {

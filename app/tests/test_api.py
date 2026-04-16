@@ -50,3 +50,13 @@ def test_platform_header():
     c = make_client()
     r = c.get("/healthz")
     assert "x-platform" in r.headers
+
+
+def test_prefix_strip(monkeypatch):
+    monkeypatch.setenv("PATH_PREFIX", "/ec2")
+    import importlib
+    from src import main as m
+    importlib.reload(m)
+    c = TestClient(m.build_app(storage=MemoryStore()))
+    assert c.get("/ec2/healthz").status_code == 200
+    assert c.get("/healthz").status_code == 200

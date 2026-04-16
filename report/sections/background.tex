@@ -1,0 +1,52 @@
+\section{Background and Pricing Model}
+\label{sec:background}
+
+We briefly recap what each paradigm delivers and how it is billed
+because the cost analysis in \cref{sec:results-cost} pivots on these
+formulas. All numbers are us-east-1 on-demand prices as published in
+April~2026~\cite{aws-price-ec2,aws-price-fargate,aws-price-lambda,aws-price-ddb}.
+
+\paragraph{EC2 (Auto Scaling Group).} A single \texttt{t3.small}
+instance bills at \$0.0208 per running hour, regardless of utilisation.
+Auto Scaling adds and removes machines according to a target-tracking
+policy on average CPU. The policy in our deployment targets 50\%
+average CPU; CloudWatch evaluates it every minute. New machines need
+roughly the launch time of the AMI plus the warm-up period before they
+join the load balancer.
+
+\paragraph{ECS Fargate.} A Fargate task is billed per vCPU-second and
+per GB-second of memory. For our 0.5\,vCPU + 1\,GB task this works out
+to $0.5{\times}\$0.04048 + 1{\times}\$0.004445 = \$0.0247$ per task-hour.
+Fargate scales by adding ECS tasks, which bypass the EC2 host
+provisioning step but still require pulling the container image and
+warming up the worker.
+
+\paragraph{Lambda (container image).} A Lambda invocation is billed at
+\$0.20 per million requests plus \$0.0000166667 per GB-second of
+execution. With a 1\,GB function and a $\overline{t}$\,ms median
+execution time, the per-request cost is
+$2{\times}10^{-7} + \overline{t}{\times}10^{-3} \cdot 1.667{\times}10^{-5}$
+USD. There is no charge while the container is warm but idle, but the
+\emph{first} request after a cold gap pays the container init cost.
+Optional provisioned concurrency keeps $N$ containers warm and is
+billed at \$0.0000041667 per GB-second per provisioned worker.
+
+\paragraph{ALB and DynamoDB.} The Application Load Balancer is billed at
+\$0.0225 per hour plus \$0.008 per LCU-hour. Because all three
+deployments share one ALB and the LCU charge is small at our test
+scales, we treat the ALB cost as a constant in the cost model and not
+as part of the per-paradigm comparison. DynamoDB on-demand at
+\$1.25 per million writes and \$0.25 per million reads contributes a
+constant per-request cost that we attribute equally to all three
+paradigms.
+
+\paragraph{Why the same image on all three.} A common pitfall in
+multi-paradigm comparisons is to deploy code that is subtly different
+across the targets, biasing latency or memory footprint measurements.
+We use the AWS Lambda Web Adapter~\cite{lambda-web-adapter} to make a
+single OCI image work on all three platforms: on EC2 and Fargate the
+container starts gunicorn directly, and on Lambda the same gunicorn
+process is fronted by the adapter so that incoming Lambda invocations
+are translated into HTTP requests to \texttt{localhost:8080}. This
+ensures the measured differences trace to the runtime, not to the
+application code.
