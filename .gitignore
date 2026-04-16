@@ -58,6 +58,9 @@ report/*.fdb_latexmk
 report/*.synctex.gz
 report/main.pdf
 
+# course-supplied reference PDFs (not ours to redistribute)
+project+5296-2026.pdf
+
 # editor / OS
 .DS_Store
 .idea/
