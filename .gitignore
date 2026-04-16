@@ -1,0 +1,66 @@
+# credentials / secrets
+aws_cli.txt
+ssourl.txt
+*.pem
+*.ppk
+.env
+.env.*
+credentials
+.aws/
+
+# terraform
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+crash.log
+crash.*.log
+tfplan
+tfplan.*
+
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# node / k6
+node_modules/
+*.log
+
+# data & artifacts
+data/raw/
+data/results/*.json
+data/results/*.csv
+!data/results/.gitkeep
+*.parquet
+
+# latex build output
+report/build/
+report/*.aux
+report/*.bbl
+report/*.blg
+report/*.log
+report/*.out
+report/*.toc
+report/*.fls
+report/*.fdb_latexmk
+report/*.synctex.gz
+report/main.pdf
+
+# editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
