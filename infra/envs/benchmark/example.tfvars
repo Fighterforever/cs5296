@@ -9,4 +9,4 @@ fargate_min_count              = 1
 fargate_max_count              = 6
 lambda_memory_mb               = 1024
 lambda_provisioned_concurrency = 0
-lambda_reserved_concurrency    = 50
+lambda_reserved_concurrency    = -1
