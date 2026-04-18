@@ -4,30 +4,35 @@
 \subsection{Workload, scenarios, and tooling}
 
 We use \texttt{k6 v1.0}~\cite{k6} as the load generator. It is run on
-a dedicated \texttt{c5.large} EC2 instance in
-\texttt{us-east-1a}, the same availability zone as the targets, so that
-network jitter to the ALB is bounded by intra-AZ RTT (sub-millisecond
-in our pings). Each run begins with a thirty-second warm-up phase
-during which we issue 50~serial requests against \texttt{/healthz} on
-each platform to make sure the connection pools are full and any JIT
-state is hot. Per-request timings are recorded in CSV and a JSON
-summary (with bootstrapped percentile statistics) is recorded at the
-end. The four scenarios are:
+a dedicated \texttt{t3.small} EC2 instance in \texttt{us-east-1a}, the
+same availability zone as the targets, so that network jitter to the
+ALB is bounded by intra-AZ RTT (sub-millisecond in our pings). Each run
+begins with a thirty-second warm-up phase during which we issue
+50~serial requests against \texttt{/healthz} on each platform to make
+sure the connection pools are full and any JIT state is hot.
+Per-request timings are recorded in CSV and a JSON summary (with
+bootstrapped percentile statistics) is recorded at the end. The four
+scenarios are:
 
 \begin{description}[leftmargin=1em,labelindent=0pt,itemsep=2pt]
 \item[Steady-state RPS sweep.] Constant arrival rate at
-      $\{50, 100, 250, 500\}$ RPS for 60\,s each.  We measure
-      end-to-end latency for the GET-redirect path.
-\item[Step-arrival burst.] One minute at 5\,RPS, three minutes at
-      400\,RPS, one minute back at 5\,RPS. The transition is what we
-      call ``elasticity'' and we estimate the time-to-steady-state
-      from the trace (see below).
-\item[Cold-start probe.] One virtual user issues 15 sequential GETs
-      with 45\,s gaps, designed to force a fresh container init for
-      Lambda. EC2 and Fargate are run with the same script as a
-      sanity baseline.
+      $\{50, 100, 200, 400\}$ RPS for 120\,s each on EC2 and Fargate,
+      and $\{25, 50, 75\}$ for 90\,s each on Lambda. The Lambda ceiling
+      is dictated by our AWS account's default concurrency quota of 10
+      simultaneous invocations; at 30\,ms of execution per request that
+      implies a theoretical ceiling of 333\,RPS, but we stay safely
+      below it.
+\item[Step-arrival burst.] One minute at 5\,RPS, three minutes at the
+      target rate, one minute back at 5\,RPS. The target is 400\,RPS
+      for EC2/Fargate and 75\,RPS for Lambda.
+\item[Cold-start probe.] One virtual user issues twelve sequential
+      \texttt{/healthz} GETs with 60-second gaps. As we report in
+      \cref{sec:results-cold}, this gap turned out to be too short to
+      reliably induce a Lambda container reclaim; our probe therefore
+      characterises warm-path latency rather than cold-start tail.
 \item[Mixed read/write.] 70\,\% GET-redirect, 30\,\% POST-shorten at
-      300\,RPS for two minutes; representative of a real shortener.
+      200\,RPS (150\,RPS for Lambda) for three minutes; representative
+      of a real shortener's traffic mix.
 \end{description}
 
 \subsection{Statistics}

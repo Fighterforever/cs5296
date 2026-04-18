@@ -1,4 +1,4 @@
 ,ttss_seconds
-ec2,240.0
-fargate,240.0
-lambda,240.0
+ec2,1.0
+fargate,0.0
+lambda,0.0

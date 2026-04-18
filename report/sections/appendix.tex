@@ -16,7 +16,7 @@ sources of this report, is available at:
 \item \textbf{Local toolchain:} OpenTofu~$\geq$1.6 (or Terraform~$\geq$1.6),
       Docker~$\geq$24 with \texttt{buildx}, AWS CLI~v2, k6~v1, Python 3.12,
       \texttt{latexmk} with a TeX Live distribution.
-\item \textbf{AWS:} a Learner Lab account (or any standard account with
+\item \textbf{AWS:} a standard AWS account (or an AWS Academy Learner Lab sub-account with
       permission to create EC2/ECS/Lambda/ALB/DynamoDB/ECR resources).
 \item \textbf{Repository layout:} \texttt{app/} application, \texttt{infra/}
       Terraform, \texttt{benchmark/} k6, \texttt{analysis/} Python,
@@ -40,7 +40,7 @@ aws ecr get-login-password --region us-east-1 | \
   docker login --username AWS --password-stdin $ECR
 docker buildx build --platform linux/amd64 --push -t $ECR:v2 .
 
-# 3. drive the benchmark from a co-located c5.large k6 worker
+# 3. drive the benchmark from a co-located t3.small k6 worker
 cd ..
 EC2_URL=$(cd infra/envs/benchmark && tofu output -raw ec2_url) \
 FARGATE_URL=... LAMBDA_URL=... bash benchmark/run.sh

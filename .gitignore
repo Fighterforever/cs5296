@@ -28,6 +28,7 @@ __pycache__/
 *$py.class
 *.egg-info/
 .venv/
+.venv-*/
 venv/
 env/
 .pytest_cache/
@@ -42,8 +43,9 @@ node_modules/
 
 # data & artifacts
 data/raw/
-data/results/*.json
-data/results/*.csv
+data/results/**/*.json
+data/results/**/*.csv
+data/results/**/*.out.csv
 !data/results/.gitkeep
 *.parquet
 

@@ -1,120 +1,130 @@
 \section{Results}
 \label{sec:results}
 
-\Cref{tab:headline} pre-summarises the four headline numbers per
-paradigm; the rest of the section explains how each was measured.
+\Cref{tab:headline} collects the headline per-stage numbers from the
+steady-state sweep. All figures and the aggregate CSV tables behind them
+are regenerated from raw k6 output by a single \texttt{make analyze}.
 
 \begin{table}[h]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.05}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrrrr}
 \toprule
-                        & \textbf{p95 lat.\,@\,200\,RPS} & \textbf{p99 lat.\,@\,400\,RPS} & \textbf{TTSS\,@\,400\,RPS} & \textbf{Cold-start p99} \\
+                        & \textbf{p50 @ 50\,RPS} & \textbf{p95 @ 50\,RPS} & \textbf{p95 @ 100\,RPS} & \textbf{p99 @ 200\,RPS} & \textbf{Saturation} \\
 \midrule
-EC2 (t3.small ASG)      & 14\,ms             & 58\,ms             & $\sim$45\,s        & n/a (warm) \\
-ECS Fargate (0.5\,vCPU) & 18\,ms             & 75\,ms             & $\sim$25\,s        & n/a (warm) \\
-AWS Lambda (1\,GB)      & 90\,ms             & 220\,ms            & $<$10\,s           & 11\,s \\
+EC2 (t3.small ASG)      & 13\,ms  & 26\,ms  & 37\,ms    & 2{,}012\,ms            & $\sim$200\,RPS \\
+ECS Fargate (0.5\,vCPU) & 13\,ms  & 664\,ms & 3{,}540\,ms & 33{,}665\,ms         & $\sim$75\,RPS \\
+AWS Lambda (1\,GB)      & 29\,ms\textsuperscript{*} & 41\,ms\textsuperscript{*} & 41\,ms\textsuperscript{\dag} & 52\,ms\textsuperscript{\dag} & quota-capped \\
 \bottomrule
 \end{tabular}
-\caption{Headline measurements. TTSS = time to steady state under our
-step-arrival burst. Cold-start refers to a fresh container spawn.}
+\caption{Measured latency on the GET-redirect path. \textsuperscript{*}at
+25--50\,RPS, \textsuperscript{\dag}at 75\,RPS (highest sustainable rate
+under the new-account Lambda concurrency quota of 10). Saturation is the
+offered RPS at which per-stage p50 crosses 30\,ms.}
 \label{tab:headline}
 \end{table}
 
 \subsection{Steady-state throughput and latency}
 \label{sec:results-steady}
 
-\Cref{fig:steady} shows median, p95, and p99 latency on the GET-redirect
-path across the four sustained RPS levels we measured. EC2 has the
-flattest curve and the lowest absolute latency at every measured load:
-its p99 sits around 60\,ms even at 500\,RPS. Fargate tracks EC2 within
-roughly $2{\times}$ on p50 but its p99 widens as RPS climbs, an effect
-we attribute to the cold-cache penalty when the autoscaler adds a new
-task. Lambda's curve is the noisiest and the steepest because every
-new container that the platform needed to bring up to keep up with
-500\,RPS contributed at least one cold invocation to the percentile.
+\Cref{fig:steady} plots median, p95, and p99 latency on the GET-redirect
+path against the target RPS of each k6 scenario stage. Three regimes are
+visible. Lambda's trace is flat across the measured band: p50~$\approx$~29\,ms,
+p95~$\approx$~40\,ms, p99~$\approx$~52\,ms from 25 up to 75\,RPS, with
+percentile confidence intervals of $\pm$1\,ms on p95. The EC2 ASG holds a
+13--21\,ms median all the way to 200\,RPS but its tail widens rapidly:
+p95 climbs from 26\,ms at 50\,RPS through 617\,ms at 200\,RPS, with p99
+reaching 2\,s long before target tracking completes a scale-out. By
+400\,RPS the single t3.small is CPU-saturated and p50 itself is 3.5\,s.
+Fargate with a single 0.5\,vCPU task shows the steepest degradation: a
+clean 13\,ms p50 at 50\,RPS, then a cliff to 2.9\,s p50 at 100\,RPS. At
+400\,RPS, 6.9\,\% of Fargate requests hit the 60\,s ALB idle timeout.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/steady_latency_vs_rps}
-  \caption{End-to-end latency vs.\ offered RPS on the GET-redirect
-    path. Bootstrap 95\,\% CIs are vertical bars (often smaller than
-    the marker for EC2/Fargate).}
+  \caption{End-to-end latency vs.\ offered RPS on the GET-redirect path.
+    Each point is one k6 scenario stage (rps\_25\ldots rps\_400); error
+    bars are bootstrap 95\,\% CIs on the percentile.}
   \label{fig:steady}
 \end{figure}
 
 \subsection{Elasticity under a step-arrival burst}
 \label{sec:results-elasticity}
 
-\Cref{fig:elasticity-trace} traces per-second p95 across our 5-minute
-burst experiment. The grey window indicates the period in which the
-arrival rate was held at 400\,RPS. EC2 and Fargate take measurably
-different times to absorb the surge: EC2 spends almost a full minute
-with p95 latency above 80\,ms before the second instance is in
-service; Fargate stabilises in roughly half that time because no new
-EC2 host needs to be launched first. Lambda overshoots the most on
-the very first second of the burst (containers initialising) but then
-falls fastest because additional concurrent containers are spawned
-on-demand.
+\Cref{fig:elasticity-trace} shows per-second p95 for the burst scenario.
+EC2 and Fargate were driven at a 400\,RPS target for three minutes;
+Lambda was driven at a 75\,RPS target (again, the quota cap). Lambda
+tracks its steady-state envelope throughout --- the p95 trace lies
+within a narrow 35--60\,ms band from the first second of the burst to
+the last. EC2 shows the expected on-ramp: the first minute of the burst
+runs at a 2--4\,s p95 while the ASG's CloudWatch target-tracking metric
+accumulates, then tapers as the second instance becomes healthy. Fargate
+exhibits the most extreme response: the single pre-scaled task collapses
+under load within seconds, and service autoscaling at 30\,s cooldown is
+not fast enough to bring the p95 below one second within our burst
+window.
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/elasticity_p95_trace}
-  \caption{Per-second p95 latency through pre-burst, burst (grey
-    band), and post-burst phases.}
+  \caption{Per-second p95 latency through pre-burst, burst (grey band),
+    and post-burst phases. y-axis is log-scaled.}
   \label{fig:elasticity-trace}
 \end{figure}
 
-\Cref{fig:elasticity-ttss} reduces the same data to a single number
-per platform --- the time-to-steady-state defined in
-\cref{sec:methodology}. EC2 needs the longest to react because it has
-to launch a fresh VM; Fargate is meaningfully quicker; Lambda is the
-fastest, although it pays the cold-start tax once per
-new container.
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=0.65\linewidth]{figures/elasticity_ttss}
-  \caption{Time to steady state under the burst scenario.}
-  \label{fig:elasticity-ttss}
-\end{figure}
+Our automatic time-to-steady-state estimator
+(\cref{sec:methodology}) reports only sub-second differences between the
+three paradigms because the steady p95 threshold is dominated by
+Lambda's clean trace. The qualitative ordering that matters for a
+practitioner --- ``EC2 $\sim$60\,s, Fargate $>$180\,s, Lambda
+effectively~0\,s'' --- is most clearly read from
+\cref{fig:elasticity-trace} directly.
 
 \subsection{Cold-start distribution on Lambda}
 \label{sec:results-cold}
 
-\Cref{fig:cold} reports the empirical cumulative distribution of
-end-to-end latency under our cold-start probe. EC2 and Fargate are
-almost a single point on this scale because a hot worker is reused by
-every probe; Lambda is bimodal --- the warm fraction (around 80\,\% of
-the requests after the first few) lies near 25\,ms, but the cold
-fraction sits orders of magnitude higher, with the slowest invocation
-reaching nearly 11\,s. The slow tail corresponds to fresh container
-inits that include image download, runtime initialisation, gunicorn
-start, and the FastAPI application import.
+\Cref{fig:cold} is the ECDF of latency for the cold-start probe (twelve
+sequential requests with 60-second gaps). Crucially, all twelve samples
+lie inside a narrow 28--48\,ms band --- \emph{warm container territory}
+--- confirming a well-documented property of Lambda's platform: inter-request
+gaps on the order of one minute are insufficient to reclaim an idle
+execution environment. The single unambiguous cold start we recorded is
+the first invocation after deployment, which we measured at 4.3\,s
+end-to-end via \texttt{curl}. A proper cold-start characterisation study
+needs gaps of roughly 5--15\,minutes; we flag this as future work and
+note that the effect is well-characterised elsewhere in the literature
+(\cite{peeking-serverless}, \cite{mcgrath-faas}).
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\linewidth]{figures/coldstart_cdf}
-  \caption{ECDF of latency for the cold-start probe (15 sequential
-    requests with 45\,s gaps). Lambda is visibly bimodal.}
+  \caption{ECDF of latency for the cold-start probe. Our 60-second gap
+    does not force container reclaim, so the distribution is tight and
+    reflects warm-path performance.}
   \label{fig:cold}
 \end{figure}
 
 \subsection{Cost-performance Pareto and break-even}
 \label{sec:results-cost}
 
-\Cref{fig:cost} plots the analytic monthly cost predicted by
-\cref{eq:cost} for each paradigm against sustained RPS. The
-$n(\rho)$ scaling functions are extracted from the steady-state
-curves: we provision a new instance/task when the median latency
-crosses 30\,ms, which is the rule-of-thumb capacity threshold our
-target tracking policy was set up to enforce. Two break-even
-points are marked: Lambda crosses Fargate around 17\,RPS and crosses
-EC2 around 60\,RPS. Below those points the no-idle billing model
-strongly favours Lambda; above them the per-second billing of Fargate
-or the hourly billing of EC2 wins.
+\Cref{fig:cost} evaluates \cref{eq:cost} at the measured per-request
+execution times. The crossover between Lambda and the two
+provisioned-capacity models converges at roughly \textbf{20\,RPS} of
+sustained traffic: below that rate, Lambda's no-idle billing is cheapest
+because EC2 and Fargate both pay for idle capacity around the clock;
+above it, a single provisioned instance or task amortises across enough
+requests that the flat hourly rate wins. The exact crossover depends on
+three levers that our Terraform variables expose:
+instance/task size, target utilisation before scale-out, and
+$\overline{t}$. In the Pareto view of \cref{fig:pareto}, Lambda is
+strictly dominant at 50\,RPS, offering both the lower p95 latency and
+the lower cost per million requests. EC2 and Fargate are Pareto-dominated
+in our measured regime, although this ordering would invert above
+several hundred sustained RPS as the provisioned-capacity curves flatten
+and the Lambda cost curve keeps growing linearly in $\rho$.
 
 \begin{figure}[t]
   \centering
@@ -125,13 +135,11 @@ or the hourly billing of EC2 wins.
   \end{subfigure}\hfill
   \begin{subfigure}{0.40\linewidth}
     \includegraphics[width=\linewidth]{figures/cost_latency_pareto}
-    \caption{Cost vs.\ p95 latency at 100\,RPS}
+    \caption{Cost vs.\ p95 latency at 50\,RPS}
     \label{fig:pareto}
   \end{subfigure}
-  \caption{(a) Predicted monthly compute-only cost from
-    \cref{eq:cost} with crossover annotations.  (b) Pareto chart at
-    100\,RPS: EC2 and Fargate are jointly Pareto-optimal; Lambda is
-    dominated at this rate but takes the lead below the break-even
-    point on the left panel.}
+  \caption{(a) Predicted monthly compute-only cost from \cref{eq:cost}
+    with crossover annotation. (b) Pareto chart at 50\,RPS using
+    measured per-platform p95 latency.}
   \label{fig:cost}
 \end{figure}

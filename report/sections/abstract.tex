@@ -6,20 +6,23 @@ functions on Lambda. Selecting between them is rarely a clean choice because
 performance, elasticity, and cost rarely move in the same direction. We
 deploy an identical container image of a URL-shortener service backed by
 DynamoDB to all three paradigms behind a single Application Load Balancer,
-and benchmark them against four scenarios: a steady-state RPS sweep up to
-400\,RPS, a step-arrival burst, a cold-start probe, and a mixed read/write
-workload. To keep the comparison fair we use the AWS Lambda Web Adapter so
-that the exact same FastAPI binary runs on every paradigm, and we drive load
-from a co-located \texttt{c5.large} k6 worker. Across our measurements EC2
-delivers the lowest steady-state tail latency, Fargate offers the best
-balance of elasticity and operational cost, and Lambda absorbs bursts within
-a few seconds at the price of a roughly $\textbf{40$\times$}$ cold-start
-penalty on the first request after idle. We then derive analytic
-break-even points by combining the measured per-request latency with public
-April~2026 us-east-1 pricing: Lambda dominates Fargate up to roughly
-\textbf{17\,RPS} of sustained traffic and Fargate dominates EC2 up to about
-\textbf{60\,RPS} for a 1\,GB workload. Our infrastructure is fully
-described in Terraform and runs unmodified inside the AWS Academy Learner
-Lab; the artifact, k6 scripts, and analysis pipeline reproduce every figure
-from raw data with a single \texttt{make} target.
+and benchmark them against four scenarios: a steady-state RPS sweep, a
+step-arrival burst, a cold-start probe, and a mixed read/write workload.
+To keep the comparison fair we use the AWS Lambda Web Adapter so that the
+exact same FastAPI binary runs on every paradigm, and we drive load from a
+co-located k6 worker running in the same availability zone. Over the
+regime we could sustain within a new AWS account's default service
+quotas, Lambda delivered the best and most stable latency
+(p95\,$\approx$\,40\,ms and p99\,$\approx$\,52\,ms across 25--75\,RPS),
+a single-instance EC2~ASG held a 13\,ms median up to 200\,RPS before its
+burstable-credit tail blew out, and a single 0.5\,vCPU Fargate task
+saturated by 100\,RPS with p50 above 3\,s. We combine these measurements
+with public April~2026 us-east-1 pricing to derive a break-even crossover
+at roughly \textbf{20\,RPS}: below that rate Lambda's no-idle billing is
+cheapest; above it, pre-provisioned compute wins. Our infrastructure is
+fully described in Terraform, the k6 scripts and analysis pipeline
+reproduce every figure from raw data with a single \texttt{make} target,
+and the artifact repository records the end-to-end process including the
+migration from the AWS Academy Learner Lab (whose sandboxed account was
+deactivated mid-experiment) to a personal AWS account.
 \end{abstract}

@@ -3,48 +3,55 @@
 
 \paragraph{Where each paradigm wins.} Our measurements line up with the
 mental model practitioners report~\cite{eismann2021review} but make it
-sharper. EC2 is the right answer when $\rho$ is high enough that the
-fixed instance cost amortises and tail latency is the dominant
-constraint --- web service tiers behind a CDN, internal APIs serving
-known traffic envelopes. Fargate is the right answer when traffic is
-known but bursty, because it avoids the EC2 bring-up time without
-paying Lambda's per-invocation overhead. Lambda is the right answer
-when traffic is genuinely sparse or completely unpredictable; the
-no-idle billing model wipes out fixed costs even at meaningful peaks.
+sharper. In the measured regime, \textbf{Lambda is the right answer
+any time $\rho \lesssim 20$\,RPS}: its per-invocation billing wipes out
+EC2's and Fargate's always-on cost, and the latency distribution is
+strictly tighter. \textbf{EC2 becomes the right answer as soon as the
+traffic is predictable and pre-provisionable}: a single t3.small holds a
+13\,ms median at 100\,RPS, and multi-instance autoscaling straightens
+out the tail above that. \textbf{Fargate's niche is narrower than its
+marketing suggests}: at the smallest CPU size (0.5\,vCPU) a single task
+cannot absorb even 100\,RPS of Python work, and task-level autoscaling
+with the default 30\,s cooldown is too slow to catch a two-minute burst.
+A larger task size (1--2\,vCPU) would push Fargate's saturation point
+higher but also push its baseline cost closer to EC2's.
 
-\paragraph{Cold start matters less than people think (most of the time).}
-Our cold-start probe shows that a 1\,GB Python container has a long
-tail (p99 $\sim$11\,s), but only about 20\,\% of probe responses fall
-in the cold mode and the warm-mode median is competitive. Two
-practical levers shrink the cold tail substantially: (a) provisioned
-concurrency, which we did not enable in the headline measurement;
-(b) reducing the cold path of the container --- our \texttt{AWS\_LWA\_ASYNC\_INIT}
-flag and the asynchronous startup of \texttt{gunicorn} workers
-already shave several seconds.
+\paragraph{Cold start matters less than our probe could measure.}
+Our cold-start scenario gapped requests by 60\,seconds, which was
+insufficient to force Lambda to reclaim an idle execution environment.
+All twelve probe samples landed in the warm 28--48\,ms band. The one
+genuine cold start we captured --- the first request immediately after
+\texttt{tofu apply} --- ran 4.3\,s end-to-end. A principled cold-start
+study needs inter-request gaps of 5--15\,minutes sustained over
+multiple instances; we flag this as future work and lean on prior
+measurements~\cite{peeking-serverless, mcgrath-faas} where we need a
+characterisation of the cold tail.
 
-\paragraph{Threats to validity.} A few are worth flagging.
-\textit{(i)~Single region, single availability zone.} All numbers
-were taken in \texttt{us-east-1a}; a different AZ would not change
-the qualitative picture but might shift cold-start medians.
-\textit{(ii)~Modest peak RPS.} We only sustained up to 500\,RPS so
-that the load generator (a single \texttt{c5.large}) was never the
-bottleneck. Larger peaks would require multi-VU distributed k6 to
-keep the generator off the critical path.
-\textit{(iii)~Cost model uses public list prices.} Real workloads pay
+\paragraph{Threats to validity.}
+\textit{(i)~Single region, single availability zone.} All numbers were
+taken in \texttt{us-east-1a}; a different AZ would not change the
+qualitative picture but might shift cold-start medians.
+\textit{(ii)~Lambda quota ceiling.} A new AWS account carries a default
+account-wide Lambda concurrency limit of 10. At our measured
+$\overline{t}$~$\approx$~30\,ms this corresponds to a theoretical
+ceiling of 333\,RPS, but the safe regime where we see no queueing is
+closer to 75\,RPS --- and that is the ceiling we respected. A Lambda
+comparison at 400\,RPS would require a service-quota increase.
+\textit{(iii)~Load-generator host size.} Our k6 worker is a single
+\texttt{t3.small}. For the rates measured here this machine is
+comfortably not the bottleneck (sub-10\,ms of CPU budget per second
+even at 400\,RPS GET-redirect), but higher rates would need
+distributed k6.
+\textit{(iv)~Cost model uses public list prices.} Real workloads pay
 significantly less for EC2 with Reserved Instances, Savings Plans, or
-Spot pricing; for Lambda the cross-over point therefore moves
-\emph{against} Lambda once any commitment discount is applied.
-\textit{(iv)~Lambda concurrency limit.} The default Learner Lab
-account concurrency limit is 10. Our 400\,RPS burst scenario does
-\emph{not} exceed it (median latency $\sim$50\,ms implies $<$25
-in-flight invocations) but a higher target rate would.
-
-\paragraph{Why we did not use Function URLs.} The Vocareum Learner
-Lab has a service control policy that rejects public Lambda Function
-URL invocations even when the function's resource policy allows
-them. We confirmed this is an environment limitation rather than a
-configuration error: the same Lambda alias served via an ALB target
-group answers as expected. The cleanest finding from this is that
-\textbf{ALB-fronted Lambda is the apples-to-apples comparator with
-ALB-fronted EC2 and ALB-fronted Fargate} for any deployment that needs
-to live alongside the other two paradigms.
+Spot pricing; the Lambda break-even therefore moves \emph{against}
+Lambda once any commitment discount is applied.
+\textit{(v)~Automated abuse detection on shared-tenant platforms.}
+Our initial deployment in the Learner Lab was terminated by the
+Vocareum abuse-detection layer mid-experiment. The triggering signal
+appears to have been sustained Lambda fan-out from a cold-start probe
+combined with four-hour loadgen uptime; the total sustained traffic
+never exceeded 8\,Mbps, well below the 1\,Gbps threshold in AWS's
+commercial EC2 Testing Policy~\cite{awsec2test}. Any performance study
+conducted on shared educational or trial accounts should budget for
+this risk.

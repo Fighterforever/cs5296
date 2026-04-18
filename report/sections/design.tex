@@ -51,7 +51,7 @@ image is then consumed by:
                  minimum height=22pt, align=center},
   arrow/.style={-{Stealth}, thick},
 ]
-  \node[client] (cl) {client \texttt{c5.large}\\(k6 worker)};
+  \node[client] (cl) {client \texttt{t3.small}\\(k6 worker)};
   \node[alb, right=of cl] (alb) {Application Load Balancer};
   \node[box, below=20pt of alb.south west, anchor=north west] (ec2)  {EC2 ASG\\\scriptsize t3.small {\textbullet} x86\_64};
   \node[box, right=of ec2]                                         (fg)   {ECS Fargate\\\scriptsize 0.5\,vCPU {\textbullet} 1\,GB};
@@ -72,26 +72,26 @@ is shared so cost differences are confined to the compute layer.}
 \label{fig:arch}
 \end{figure}
 
-\subsection{Adapting to the AWS Academy Learner Lab}
+\subsection{From the Learner Lab to a personal AWS account}
 
-The Learner Lab is a Vocareum-managed AWS sub-account that the course
-gives students. It is an unusual environment: IAM role creation is
-disabled, several APIs (notably public Lambda Function URLs) are
-blocked by an SCP, and the session token is rotated every four hours.
-Two design decisions follow:
-
-\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=2pt]
-  \item All Terraform modules reference the pre-existing
-        \texttt{LabRole} ARN as the execution role for EC2, Fargate, and
-        Lambda rather than creating a new role.
-  \item Lambda is exposed exclusively via an ALB target group. Public
-        Function URLs return \texttt{AccessDeniedException} in our lab,
-        despite a correct resource-policy configuration; the same code
-        works against an ALB-attached target. We use ALB-fronted
-        Lambda for all benchmarks reported in this paper to keep the
-        client-server data path identical across paradigms.
-\end{itemize}
-
-A single \texttt{tofu apply} provisions all 26 resources end-to-end in
-under five minutes, and \texttt{tofu destroy} returns the lab to a
-clean state.
+The project was originally deployed inside the AWS Academy Learner Lab,
+a Vocareum-managed AWS sub-account with two inconvenient properties:
+IAM role creation is disabled (our Terraform therefore referenced the
+pre-existing \texttt{LabRole} ARN for every service), and public Lambda
+Function URLs return \texttt{AccessDeniedException} regardless of
+resource-policy configuration. The first pass of measurements was
+taken in that environment. Mid-experiment, the lab account was
+deactivated by the platform's automated abuse-detection heuristics;
+neither Reset nor ticketed intervention by the lab TA could recover it.
+All data reported in this paper therefore comes from a fresh personal
+AWS account provisioned with the same Terraform, with three
+substitutions: (i)~self-managed IAM roles (one EC2 instance profile,
+two ECS task roles, one Lambda execution role) replace \texttt{LabRole};
+(ii)~Function URLs are dropped --- every paradigm serves through the
+shared ALB --- to keep the client-server data path identical across
+paradigms and to remove any publicly-reachable invocation vector;
+(iii)~Lambda's reserved concurrency is cleared (the new-account
+default account-wide limit is 10). A single \texttt{tofu apply}
+provisions all 39 resources end-to-end in under seven minutes, and
+\texttt{make nuke} returns the account to a clean state including
+sweeping stray ENIs or EIPs.

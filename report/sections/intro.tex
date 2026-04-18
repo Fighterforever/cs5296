@@ -24,14 +24,14 @@ shortener (\texttt{FastAPI} + DynamoDB) as a single OCI container image,
 attach the AWS Lambda Web Adapter so the same image runs on a Lambda
 container function as well as on EC2 and Fargate, and put all three
 deployments behind a shared Application Load Balancer. A
-\texttt{c5.large} k6 worker in the same availability zone exercises the
+\texttt{t3.small} k6 worker in the same availability zone exercises the
 endpoints under four scenarios.
 
 \paragraph{Contributions.} The work makes four contributions:
 \begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=2pt]
   \item A reproducible benchmarking harness in which the same image is
         deployed to EC2, Fargate, and Lambda from the same Terraform
-        codebase, runnable end-to-end inside the AWS Academy Learner Lab
+        codebase, runnable end-to-end on any AWS account
         environment that the course uses (\cref{sec:design}).
   \item A measured comparison of throughput, p50/p95/p99 latency, and
         elasticity across the three paradigms with bootstrap confidence

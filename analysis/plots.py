@@ -42,20 +42,39 @@ def save(fig, name: str):
 def plot_steady(runs: list[Run]):
     rows = []
     for r in [x for x in runs if x.scenario == "steady"]:
-        df = load_csv(r.csv_path)
-        if df.empty:
-            continue
-        # bin requests per second to recover "stage" rates when tagging is absent
-        df["t_bin"] = df["t_rel"].astype(int)
-        rps_by_bin = df.groupby("t_bin").size()
-        df = df.merge(rps_by_bin.rename("rps"), left_on="t_bin", right_index=True)
-        # pick stages by unique rps levels (mode per contiguous block)
-        for rps, sub in df.groupby(pd.cut(df["rps"], bins=[0, 75, 175, 375, 750, 1500, 3000, 10000]), observed=True):
-            if len(sub) < 500:
-                continue
-            arr = sub["lat_ms"].to_numpy()
-            s = summarise_latency(arr)
-            rows.append({"platform": r.platform, "rps_bucket": str(rps), "rps_mid": (rps.left + rps.right) / 2, **s})
+        # Prefer k6's scenario tag (rps_25, rps_50, ...) for clean per-stage stats;
+        # fall back to time-window RPS inference for legacy CSVs that lack it.
+        import pandas as _pd
+        raw = _pd.read_csv(r.csv_path, low_memory=False)
+        raw = raw[raw["metric_name"] == "http_req_duration"].copy()
+        raw["lat_ms"] = _pd.to_numeric(raw["metric_value"], errors="coerce")
+        raw["status"] = _pd.to_numeric(raw["status"], errors="coerce")
+        ok = raw[raw["status"].notna() & (raw["status"] > 0)]
+        have_scenario_tag = "scenario" in ok.columns and ok["scenario"].astype(str).str.startswith("rps_").any()
+        if have_scenario_tag:
+            for sc, sub in ok.groupby("scenario"):
+                if not str(sc).startswith("rps_"):
+                    continue
+                rps = int(str(sc).split("_")[1])
+                arr = sub["lat_ms"].dropna().to_numpy()
+                if len(arr) < 200:
+                    continue
+                s = summarise_latency(arr)
+                total = int((raw["scenario"] == sc).sum())
+                s["err_pct"] = 100.0 * (1 - len(arr) / total) if total else 0.0
+                rows.append({"platform": r.platform, "rps_bucket": f"rps_{rps}", "rps_mid": float(rps), **s})
+        else:
+            df = load_csv(r.csv_path)
+            df["t_bin"] = df["t_rel"].astype(int)
+            rps_by_bin = df.groupby("t_bin").size()
+            df = df.merge(rps_by_bin.rename("rps"), left_on="t_bin", right_index=True)
+            for rps, sub in df.groupby(pd.cut(df["rps"], bins=[0, 75, 175, 375, 750, 1500, 3000, 10000]), observed=True):
+                if len(sub) < 500:
+                    continue
+                arr = sub["lat_ms"].to_numpy()
+                s = summarise_latency(arr)
+                s["err_pct"] = 0.0
+                rows.append({"platform": r.platform, "rps_bucket": str(rps), "rps_mid": (rps.left + rps.right) / 2, **s})
 
     if not rows:
         return
