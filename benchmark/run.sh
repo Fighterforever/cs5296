@@ -26,12 +26,12 @@ RPS_LIST="${RPS_LIST:-50,100,200,400}"
 STAGE_DURATION="${STAGE_DURATION:-120s}"
 
 # Lambda-specific profile (capped to stay within reserved_concurrency=50)
-LAMBDA_RPS_LIST="${LAMBDA_RPS_LIST:-50,100,200}"
+LAMBDA_RPS_LIST="${LAMBDA_RPS_LIST:-25,50,75}"
 LAMBDA_STAGE_DURATION="${LAMBDA_STAGE_DURATION:-90s}"
 
 # Burst
 BURST_TARGET="${BURST_TARGET:-400}"
-LAMBDA_BURST_TARGET="${LAMBDA_BURST_TARGET:-200}"
+LAMBDA_BURST_TARGET="${LAMBDA_BURST_TARGET:-75}"
 BURST_DUR="${BURST_DUR:-180s}"
 
 # Cold-start probe (Lambda only, gentle parameters)
@@ -41,7 +41,7 @@ RUN_COLDSTART="${RUN_COLDSTART:-lambda}"   # set to empty to skip entirely
 
 # Mixed
 MIX_RPS="${MIX_RPS:-200}"
-LAMBDA_MIX_RPS="${LAMBDA_MIX_RPS:-150}"
+LAMBDA_MIX_RPS="${LAMBDA_MIX_RPS:-50}"
 MIX_DURATION="${MIX_DURATION:-180s}"
 
 run_one() {
