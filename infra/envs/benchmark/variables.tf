@@ -8,11 +8,6 @@ variable "owner_tag" {
   default = "cs5296-group"
 }
 
-variable "account_id" {
-  description = "Account id (for LabRole ARN)"
-  type        = string
-}
-
 variable "image_tag" {
   description = "Image tag pushed to the ECR repo from app/"
   type        = string
@@ -62,4 +57,10 @@ variable "lambda_memory_mb" {
 variable "lambda_provisioned_concurrency" {
   type    = number
   default = 0
+}
+
+variable "lambda_reserved_concurrency" {
+  type        = number
+  default     = 50
+  description = "Reserved concurrency cap for the Lambda function, limits peak fan-out"
 }

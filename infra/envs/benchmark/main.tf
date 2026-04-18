@@ -1,18 +1,15 @@
 locals {
-  lab_role_arn = "arn:aws:iam::${var.account_id}:role/LabRole"
-  name_prefix  = "cs5296"
+  name_prefix = "cs5296"
 }
 
 module "shared" {
-  source       = "../../modules/shared"
-  name_prefix  = local.name_prefix
-  lab_role_arn = local.lab_role_arn
+  source      = "../../modules/shared"
+  name_prefix = local.name_prefix
 }
 
 module "ec2" {
   source            = "../../modules/ec2"
   name_prefix       = local.name_prefix
-  lab_role_arn      = local.lab_role_arn
   vpc_id            = module.shared.vpc_id
   public_subnet_ids = module.shared.public_subnet_ids
   app_sg_id         = module.shared.app_sg_id
@@ -28,38 +25,39 @@ module "ec2" {
 }
 
 module "fargate" {
-  source           = "../../modules/fargate"
-  name_prefix      = local.name_prefix
-  lab_role_arn     = local.lab_role_arn
-  vpc_id           = module.shared.vpc_id
-  subnet_ids       = module.shared.public_subnet_ids
-  app_sg_id        = module.shared.app_sg_id
-  alb_target_group = module.shared.fargate_target_group_arn
-  ecr_repo_url     = module.shared.ecr_repo_url
-  image_tag        = var.image_tag
-  ddb_table        = module.shared.ddb_table_name
-  cpu              = var.fargate_cpu
-  memory           = var.fargate_memory
-  min_count        = var.fargate_min_count
-  max_count        = var.fargate_max_count
-  region           = var.region
+  source             = "../../modules/fargate"
+  name_prefix        = local.name_prefix
+  execution_role_arn = module.shared.ecs_exec_role_arn
+  task_role_arn      = module.shared.ecs_task_role_arn
+  vpc_id             = module.shared.vpc_id
+  subnet_ids         = module.shared.public_subnet_ids
+  app_sg_id          = module.shared.app_sg_id
+  alb_target_group   = module.shared.fargate_target_group_arn
+  ecr_repo_url       = module.shared.ecr_repo_url
+  image_tag          = var.image_tag
+  ddb_table          = module.shared.ddb_table_name
+  cpu                = var.fargate_cpu
+  memory             = var.fargate_memory
+  min_count          = var.fargate_min_count
+  max_count          = var.fargate_max_count
+  region             = var.region
 }
 
 module "lambda" {
   source                  = "../../modules/lambda"
   name_prefix             = local.name_prefix
-  lab_role_arn            = local.lab_role_arn
+  exec_role_arn           = module.shared.lambda_exec_role_arn
   ecr_repo_url            = module.shared.ecr_repo_url
   image_tag               = var.image_tag
   ddb_table               = module.shared.ddb_table_name
   memory_mb               = var.lambda_memory_mb
   provisioned_concurrency = var.lambda_provisioned_concurrency
+  reserved_concurrency    = var.lambda_reserved_concurrency
   alb_target_group        = module.shared.lambda_target_group_arn
 }
 
 output "ec2_url" { value = "http://${module.shared.alb_dns}/ec2" }
 output "fargate_url" { value = "http://${module.shared.alb_dns}/fargate" }
-output "lambda_url" { value = module.lambda.function_url }
 output "lambda_alb_url" { value = "http://${module.shared.alb_dns}/lambda" }
 output "ecr_repo_url" { value = module.shared.ecr_repo_url }
 output "ddb_table" { value = module.shared.ddb_table_name }

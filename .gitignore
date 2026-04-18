@@ -7,6 +7,8 @@ ssourl.txt
 .env.*
 credentials
 .aws/
+*accessKeys.csv
+*_credentials.csv
 
 # terraform
 **/.terraform/
