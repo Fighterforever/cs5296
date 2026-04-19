@@ -107,6 +107,16 @@ note that the effect is well-characterised elsewhere in the literature
   \label{fig:cold}
 \end{figure}
 
+\subsection{Mixed read/write workload}
+\label{sec:results-mixed}
+The 70\,\%/30\,\% GET/POST mix run at each platform's safe target rate
+corroborates the steady-state ordering. EC2 at 200\,RPS held 15\,ms p50
+and 98\,ms p95; Lambda at 150\,RPS held 27\,ms p50 and 37\,ms p95;
+Fargate at 200\,RPS again saturated, with p50~$\approx$~5\,s and
+p99~$\approx$~19\,s. No request produced a non-2xx/3xx response. The
+write fraction therefore did not shift the per-paradigm ordering
+inside the measured envelope.
+
 \subsection{Cost-performance Pareto and break-even}
 \label{sec:results-cost}
 
