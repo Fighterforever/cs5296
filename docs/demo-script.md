@@ -103,42 +103,54 @@ Each chunk is what to paste into ElevenLabs. Above each chunk: which slide is on
 
 ---
 
-## [TERMINAL SCREENCAST — ~80 seconds raw, edit to ~60 seconds in timeline]
+## [TERMINAL SCREENCAST — pre-rendered, 51.3 s, 1920x1080]
 
-While the audio chunk below plays, the picture is a sped-up screencast of the following commands, run from your laptop with `AWS_PROFILE=cs5296`. Use a large monospace font (16pt+) so it is readable at 1080p.
+The video file is `docs/demo-terminal.mp4`. Drop it on the timeline at the time slot below; **do not** speed-adjust. Audio is split into three sub-chunks aligned to the on-screen action — render each separately in ElevenLabs.
 
-**What to record (one take, ~80 seconds at normal pace):**
+| Sub-chunk | On-screen at this moment | Sub-chunk audio length |
+|-----------|--------------------------|----------------------|
+| 8a — Healthchecks  | Section 1: three curl/JSON pairs (ec2 → fargate → lambda) | ~16 s |
+| 8b — Round-trip    | Section 2: shorten POST + redirect GET                    | ~12 s |
+| 8c — Artifact      | Section 3: ls runs, build_figures, ls figures, open pdf   | ~22 s |
 
-```bash
-# 1) prove the three deployments are alive
-ALB=http://cs5296-alb-550516460.us-east-1.elb.amazonaws.com
-curl -s $ALB/ec2/healthz     | jq .
-curl -s $ALB/fargate/healthz | jq .
-curl -s $ALB/lambda/healthz  | jq .
+**Timeline placement (relative to the start of the terminal video clip):**
+- start of video: t = 0:00
+- drop sub-chunk 8a at t = **0:01** (lets the section header settle for 1 s)
+- drop sub-chunk 8b at t = **0:16**
+- drop sub-chunk 8c at t = **0:28**
+- end of video: t = 0:51
 
-# 2) round-trip on the redirect path against Lambda
-curl -s -X POST -H 'Content-Type: application/json' \
-     -d '{"url":"https://example.com"}' \
-     $ALB/lambda/shorten | jq .
-# response shows {"code":"abc1234"}
+This makes the speech land roughly when the matching command is being typed or when its output appears, not before, not after.
 
-curl -s -i $ALB/lambda/r/abc1234 | head -3
-# response is 301 Moved Permanently to https://example.com
+---
 
-# 3) regenerate every figure from raw measurements
-ls data/results/run-personal-20260418T154912Z/ | head
-python -m analysis.build_figures run-personal-20260418T154912Z
-ls report/figures/
+### Sub-chunk 8a — Healthchecks  *(paste into ElevenLabs as one piece — ~16 s)*
 
-# 4) open the report PDF
-open report/main.pdf
-```
+> You are looking at three live healthcheck calls, one per paradigm, all routed through the same load balancer. EC2 returns its container hostname. Fargate returns its private internal IP. Lambda returns the platform-managed sandbox address. All three answer two hundred OK in under a second.
 
-**Editor: speed this clip 2x to 3x. Audio (chunk below) plays over it at normal speed.**
+*46 words, ~17 s @ 150 wpm. Aligns with t = 0:01 → 0:18 of terminal video (the three healthchecks).*
 
-> What you are seeing is, first, three live healthcheck calls — one per paradigm, all returning two-hundred OK. Second, a real round-trip on the URL-shortener path: a POST to slash shorten returns a short code; a GET to slash r slash code returns a three-oh-one redirect. Third, a single command — python dash m analysis dot build underscore figures — reads the raw k6 CSV from this run and regenerates all five figures plus the headline summary CSVs in under a minute. And finally, the full report PDF opens, with every figure in the report sourced from this exact pipeline.
+---
 
-*Estimated audio: 60 seconds.*
+### Sub-chunk 8b — Round-trip on Lambda  *(~12 s)*
+
+> Now an end-to-end round trip on Lambda. A POST to slash shorten returns a freshly hashed short code; the matching GET to slash r slash code answers with a three-oh-one redirect to the original URL. The full URL-shortener path works through the same shared backend.
+
+*47 words, ~18 s @ 150 wpm. Aligns with t = 0:16 → 0:30 of terminal video (the POST and GET round-trip).*
+
+---
+
+### Sub-chunk 8c — Artifact reproduces every figure  *(~22 s)*
+
+> Finally, the artifact. Ten raw k6 result files from one full benchmark run. A single command — python dash m analysis dot build underscore figures — reads them, computes bootstrap confidence intervals on every percentile, and writes all five report figures plus the four headline summary CSVs in under a minute. The PDFs you see are the exact files referenced in the paper. Every figure in the report traces back to this exact pipeline.
+
+*72 words, ~28 s @ 150 wpm. Aligns with t = 0:28 → 0:51 (the python output, ls of PDFs, and report opening).*
+
+---
+
+**Total terminal-segment narration: 165 words ≈ 63 s @ 150 wpm.** Slight overshoot vs the 51 s video is intended: the 1-second silent intro plus natural pauses between sub-chunks consume the difference. If your ElevenLabs voice runs faster than 150 wpm, this lands almost exactly on the 51 s mark.
+
+**If you want to record the terminal yourself instead of using the pre-rendered MP4**, run `bash docs/demo-terminal.sh` while QuickTime screen-records the terminal window. Same content, your terminal theme.
 
 ---
 
@@ -166,22 +178,25 @@ open report/main.pdf
 
 ---
 
-# Time budget
+# Time budget (recomputed at ElevenLabs realistic 150 wpm)
 
-| # | Section                       | Audio | Slide on screen |
-|---|-------------------------------|-------|-----------------|
-| 1 | Title                         | 28s   | Slide 1         |
-| 2 | The choice                    | 50s   | Slide 2         |
-| 3 | Architecture                  | 65s   | Slide 3         |
-| 4 | Four scenarios                | 38s   | Slide 4         |
-| 5 | Steady-state results          | 60s   | Slide 5         |
-| 6 | Elasticity                    | 45s   | Slide 6         |
-| 7 | Cost & break-even             | 50s   | Slide 7         |
-| 8 | Live demo transition          | 8s    | Slide 8         |
-|   | + Terminal screencast (sped)  | 60s   | terminal clip   |
-| 9 | Reproducibility               | 35s   | Slide 9         |
-| 10| Findings & threats            | 65s   | Slide 10        |
-| 11| Thank you                     | 12s   | Slide 11        |
-|   | **TOTAL**                     | **~8m 36s** | |
+| #  | Section                       | Words | Audio | Slide on screen |
+|----|-------------------------------|-------|-------|-----------------|
+| 1  | Title                         | 84    | 34 s  | Slide 1         |
+| 2  | The choice                    | 106   | 42 s  | Slide 2         |
+| 3  | Architecture                  | 140   | 56 s  | Slide 3         |
+| 4  | Four scenarios                | 90    | 36 s  | Slide 4         |
+| 5  | Steady-state results          | 121   | 48 s  | Slide 5         |
+| 6  | Elasticity                    | 85    | 34 s  | Slide 6         |
+| 7  | Cost & break-even             | 98    | 39 s  | Slide 7         |
+| 8  | Live demo transition          | 15    | 6 s   | Slide 8         |
+| 8a | Healthchecks                  | 46    | 18 s  | terminal clip   |
+| 8b | Round-trip on Lambda          | 47    | 18 s  | terminal clip   |
+| 8c | Artifact reproduces figures   | 72    | 28 s  | terminal clip   |
+| 9  | Reproducibility               | 93    | 37 s  | Slide 9         |
+| 10 | Findings & threats            | 146   | 58 s  | Slide 10        |
+| 11 | Thank you                     | 28    | 11 s  | Slide 11        |
+|    | **TOTAL**                     | **1171** | **~7 m 25 s** | |
 
-Adds 4–6 seconds of cross-fade between slides → comfortable 8m 50s total. Inside the 10-minute hard limit with margin.
+The terminal video is 51 s wall-clock; sub-chunks 8a + 8b + 8c overlay it (with 1 s lead-in pause and natural inter-chunk gaps consuming the remainder).
+Add ~5 s of cross-fade between slide changes → comfortable **~7 m 30 s** total. Well inside the 10-minute hard limit, with ~2.5 min of headroom if you later decide to extend any chunk.
