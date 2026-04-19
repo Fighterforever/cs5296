@@ -50,10 +50,13 @@
   \vspace{-2pt}\hspace{8pt}\textcolor{slate!40}{\rule{\dimexpr\paperwidth-16pt\relax}{0.6pt}}\par
 }
 \setbeamertemplate{footline}{%
-  \hfill\textcolor{black!45}{\scriptsize
-    CS5296 Group~24 \quad
-    \insertframenumber\,/\,\inserttotalframenumber}%
-  \hspace{6pt}\vspace{4pt}
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=12pt,dp=4pt,leftskip=10pt,rightskip=10pt]{footer}%
+    \scriptsize\textcolor{black!45}{CS5296 Group~24}%
+    \hfill%
+    \scriptsize\textcolor{black!45}{\insertframenumber\,/\,\inserttotalframenumber}%
+  \end{beamercolorbox}}%
 }
 
 \setbeamersize{text margin left=18pt,text margin right=18pt}
@@ -178,31 +181,19 @@
 % SLIDE 4 -- FOUR SCENARIOS
 % =============================================================================
 \begin{frame}{Four scenarios, driven by the same k6 harness}
-  \vspace{6pt}
-  \begin{columns}[T]
-    \begin{column}{0.46\linewidth}
-      \begin{block}{Steady-state RPS sweep}
-        Constant arrival rate at four levels (50/100/200/400 RPS for EC2 and Fargate; 25/50/75 for Lambda). Recovers per-stage tail latency.
-      \end{block}
-      \vspace{4pt}
-      \begin{block}{Step-arrival burst}
-        One minute idle, three minutes at the target rate, one minute idle. Captures elasticity and time-to-steady-state.
-      \end{block}
-    \end{column}
-    \begin{column}{0.46\linewidth}
-      \begin{block}{Cold-start probe}
-        Twelve sparse \texttt{/healthz} requests with 60-second gaps, designed to characterise warm-vs-cold latency on Lambda.
-      \end{block}
-      \vspace{4pt}
-      \begin{block}{Mixed read/write}
-        70\,\% GET-redirect, 30\,\% POST-shorten at 200\,RPS for three minutes. Approximates real shortener traffic.
-      \end{block}
-    \end{column}
-  \end{columns}
+  \vspace{4pt}
+  \footnotesize
+  \renewcommand{\arraystretch}{1.35}
+  \begin{tabular}{@{}p{0.22\linewidth}@{\hspace{8pt}}p{0.74\linewidth}@{}}
+    \textcolor{slate}{\bfseries Steady-state}    & Constant arrival rate. EC2 and Fargate: 50/100/200/400\,RPS. Lambda: 25/50/75\,RPS. Recovers per-stage tail latency. \\
+    \textcolor{slate}{\bfseries Step burst}      & One minute idle, three minutes at the target rate, one minute idle. Captures elasticity and time-to-steady-state. \\
+    \textcolor{slate}{\bfseries Cold-start probe} & Twelve sparse \texttt{/healthz} requests with 60-second gaps. Designed to characterise warm-vs-cold latency on Lambda. \\
+    \textcolor{slate}{\bfseries Mixed R/W}       & 70\,\% GET-redirect, 30\,\% POST-shorten at 200\,RPS for three minutes. Approximates a real shortener mix. \\
+  \end{tabular}
 
-  \vspace{8pt}
+  \vspace{12pt}
   \begin{center}
-    \footnotesize\textcolor{black!60}{All scenarios driven from a co-located \texttt{t3.small} k6 worker in \texttt{us-east-1a}; raw timings recorded in CSV; bootstrap 95\,\% CIs on every reported percentile.}
+    \scriptsize\textcolor{black!55}{All scenarios driven from a co-located \texttt{t3.small} k6 worker in \texttt{us-east-1a}; bootstrap 95\,\% CIs on every reported percentile.}
   \end{center}
 \end{frame}
 
@@ -257,21 +248,21 @@
 % =============================================================================
 \begin{frame}{Cost: a single break-even crossover near 20 RPS}
   \begin{columns}[T]
-    \begin{column}{0.55\linewidth}
-      \vspace{-4pt}
+    \begin{column}{0.56\linewidth}
+      \vspace{-2pt}
       \includegraphics[width=\linewidth]{figures/cost_vs_rps}
     \end{column}
     \begin{column}{0.42\linewidth}
-      \vspace{-4pt}
+      \vspace{-2pt}
       \includegraphics[width=\linewidth]{figures/cost_latency_pareto}
     \end{column}
   \end{columns}
 
-  \vspace{6pt}
-  \begin{itemize}\setlength\itemsep{2pt}
-    \item Below \(\sim\)20\,RPS, Lambda's no-idle billing wins because EC2 and Fargate pay around the clock.
-    \item Above \(\sim\)20\,RPS, a single provisioned instance amortises across enough requests that the flat hourly rate beats per-invocation pricing.
-    \item Pareto chart at 50\,RPS: Lambda is strictly dominant in our measured regime.
+  \vspace{4pt}
+  \footnotesize
+  \begin{itemize}\setlength\itemsep{1pt}\setlength\topsep{0pt}
+    \item Below \(\sim\)20\,RPS Lambda wins (no idle cost); above it pre-provisioned compute amortises enough.
+    \item At 50\,RPS Lambda is \emph{Pareto-dominant} on both axes in our measured regime.
   \end{itemize}
 \end{frame}
 
