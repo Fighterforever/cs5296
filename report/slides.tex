@@ -50,13 +50,15 @@
   \vspace{-2pt}\hspace{8pt}\textcolor{slate!40}{\rule{\dimexpr\paperwidth-16pt\relax}{0.6pt}}\par
 }
 \setbeamertemplate{footline}{%
-  \leavevmode%
-  \hbox{%
-  \begin{beamercolorbox}[wd=\paperwidth,ht=12pt,dp=4pt,leftskip=10pt,rightskip=10pt]{footer}%
+  \vskip 2pt%
+  \hbox to \paperwidth{%
+    \hspace*{14pt}%
     \scriptsize\textcolor{black!45}{CS5296 Group~24}%
-    \hfill%
+    \hfil%
     \scriptsize\textcolor{black!45}{\insertframenumber\,/\,\inserttotalframenumber}%
-  \end{beamercolorbox}}%
+    \hspace*{14pt}%
+  }%
+  \vskip 6pt%
 }
 
 \setbeamersize{text margin left=18pt,text margin right=18pt}
