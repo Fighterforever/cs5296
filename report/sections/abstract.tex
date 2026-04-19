@@ -17,7 +17,7 @@ the most stable latency (p95~$\approx$~40\,ms, p99~$\approx$~52\,ms across
 before its burstable-credit tail blew out; and a single 0.5\,vCPU
 Fargate task saturated at 100\,RPS with p50 above 3\,s. Combining
 these with public April~2026 us-east-1 pricing, we derive break-even
-crossovers near \textbf{17--19\,RPS} --- below them Lambda's no-idle
+crossovers near \textbf{8--10\,RPS} --- below them Lambda's no-idle
 billing wins, above them pre-provisioned compute wins. The infrastructure
 is described in Terraform, k6 scripts and the analysis pipeline
 reproduce every figure with a single \texttt{make} target, and the

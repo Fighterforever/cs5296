@@ -1,7 +1,7 @@
 \section{Results}
 \label{sec:results}
 
-\Cref{tab:headline} collects the headline per-stage numbers from the
+Table~\ref{tab:headline} collects the headline per-stage numbers from the
 steady-state sweep. All figures and the aggregate CSV tables behind them
 are regenerated from raw k6 output by a single \texttt{make analyze}.
 
@@ -29,7 +29,7 @@ offered RPS at which per-stage p50 crosses 30\,ms.}
 \subsection{Steady-state throughput and latency}
 \label{sec:results-steady}
 
-\Cref{fig:steady} plots median, p95, and p99 latency on the GET-redirect
+Figure~\ref{fig:steady} plots median, p95, and p99 latency on the GET-redirect
 path against the target RPS of each k6 scenario stage. Three regimes are
 visible. Lambda's trace is flat across the measured band: p50~$\approx$~29\,ms,
 p95~$\approx$~40\,ms, p99~$\approx$~52\,ms from 25 up to 75\,RPS, with
@@ -54,7 +54,7 @@ clean 13\,ms p50 at 50\,RPS, then a cliff to 2.9\,s p50 at 100\,RPS. At
 \subsection{Elasticity under a step-arrival burst}
 \label{sec:results-elasticity}
 
-\Cref{fig:elasticity-trace} shows per-second p95 for the burst scenario.
+Figure~\ref{fig:elasticity-trace} shows per-second p95 for the burst scenario.
 EC2 and Fargate were driven at a 400\,RPS target for three minutes;
 Lambda was driven at a 75\,RPS target (again, the quota cap). Lambda
 tracks its steady-state envelope throughout --- the p95 trace lies
@@ -76,17 +76,17 @@ window.
 \end{figure}
 
 Our automatic time-to-steady-state estimator
-(\cref{sec:methodology}) reports only sub-second differences between the
+(Section~\ref{sec:methodology}) reports only sub-second differences between the
 three paradigms because the steady p95 threshold is dominated by
 Lambda's clean trace. The qualitative ordering that matters for a
 practitioner --- ``EC2 $\sim$60\,s, Fargate $>$180\,s, Lambda
 effectively~0\,s'' --- is most clearly read from
-\cref{fig:elasticity-trace} directly.
+Figure~\ref{fig:elasticity-trace} directly.
 
 \subsection{Cold-start distribution on Lambda}
 \label{sec:results-cold}
 
-\Cref{fig:cold} is the ECDF of latency for the cold-start probe (twelve
+Figure~\ref{fig:cold} is the ECDF of latency for the cold-start probe (twelve
 sequential requests with 60-second gaps). Crucially, all twelve samples
 lie inside a narrow 28--48\,ms band --- \emph{warm container territory}
 --- confirming a well-documented property of Lambda's platform: inter-request
@@ -110,16 +110,16 @@ note that the effect is well-characterised elsewhere in the literature
 \subsection{Cost-performance Pareto and break-even}
 \label{sec:results-cost}
 
-\Cref{fig:cost} evaluates \cref{eq:cost} at the measured per-request
+Figure~\ref{fig:cost} evaluates Equation~\ref{eq:cost} at the measured per-request
 execution times. Linearly-interpolated break-even points sit at
-\textbf{17\,RPS} against EC2 and \textbf{19\,RPS} against Fargate.
+\textbf{8\,RPS} against EC2 and \textbf{10\,RPS} against Fargate.
 Below these rates, Lambda's no-idle billing is cheapest because EC2 and
 Fargate both pay for idle capacity around the clock; above them, a
 single provisioned instance or task amortises across enough requests
 that the flat hourly rate wins. The exact crossover depends on
 three levers that our Terraform variables expose:
 instance/task size, target utilisation before scale-out, and
-$\overline{t}$. In the Pareto view of \cref{fig:pareto}, Lambda is
+$\overline{t}$. In the Pareto view of Figure~\ref{fig:pareto}, Lambda is
 strictly dominant at 50\,RPS, offering both the lower p95 latency and
 the lower cost per million requests. EC2 and Fargate are Pareto-dominated
 in our measured regime, although this ordering would invert above
@@ -138,7 +138,7 @@ and the Lambda cost curve keeps growing linearly in $\rho$.
     \caption{Cost vs.\ p95 latency at 50\,RPS}
     \label{fig:pareto}
   \end{subfigure}
-  \caption{(a) Predicted monthly compute-only cost from \cref{eq:cost}
+  \caption{(a) Predicted monthly compute-only cost from Equation~\ref{eq:cost}
     with crossover annotation. (b) Pareto chart at 50\,RPS using
     measured per-platform p95 latency.}
   \label{fig:cost}

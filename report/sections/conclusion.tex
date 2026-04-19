@@ -10,7 +10,7 @@ tightest tail (p95~$\approx$~40\,ms across 25--75\,RPS), a single
 before its burstable-credit tail widened, and a single 0.5\,vCPU
 Fargate task could not absorb even 100\,RPS of Python work. Combining
 the measured per-request latency with public April~2026 us-east-1
-pricing gives break-even crossovers at roughly 17--19\,RPS: below
+pricing gives break-even crossovers at roughly 8--10\,RPS: below
 them, Lambda's no-idle billing is cheapest; above them, pre-provisioned
 compute wins. The full pipeline --- Terraform,
 container build, k6 scenarios, analysis, and figure generation ---

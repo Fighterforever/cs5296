@@ -27,7 +27,7 @@ scenarios are:
       for EC2/Fargate and 75\,RPS for Lambda.
 \item[Cold-start probe.] One virtual user issues twelve sequential
       \texttt{/healthz} GETs with 60-second gaps. As we report in
-      \cref{sec:results-cold}, this gap turned out to be too short to
+      Section~\ref{sec:results-cold}, this gap turned out to be too short to
       reliably induce a Lambda container reclaim; our probe therefore
       characterises warm-path latency rather than cold-start tail.
 \item[Mixed read/write.] 70\,\% GET-redirect, 30\,\% POST-shorten at
@@ -41,7 +41,7 @@ Per-request raw latency is highly non-normal (heavy right tail), so we
 report distribution percentiles rather than mean$\pm$sd. Confidence
 intervals on each percentile are computed by non-parametric bootstrap
 with $B{=}1000$ resamples and $\alpha{=}0.05$. The error bars in
-\cref{fig:steady} are these intervals.
+Figure~\ref{fig:steady} are these intervals.
 
 \paragraph{Time-to-steady-state.} We define the elasticity of a
 deployment as the elapsed time between the start of the burst and the
@@ -52,7 +52,7 @@ exists --- which only happens for Lambda when burst RPS exceeds the
 account concurrency limit --- we record $\infty$.
 
 \paragraph{Cost model.} The cost analysis combines the AWS billing
-formulas of \cref{sec:background} with our measured median execution
+formulas of Section~\ref{sec:background} with our measured median execution
 time. Concretely, for sustained $\rho$ RPS, our cost-per-month
 (USD) is
 \begin{equation}

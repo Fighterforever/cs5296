@@ -83,9 +83,16 @@ def main(run_id: str | None = None):
     _setup()
     runs = list_runs(run_id)
     if not runs:
-        print(">> no real runs found; generating synthetic dataset under data/results/synth/")
-        _synth()
-        runs = list_runs("synth")
+        if run_id == "synth":
+            print(">> synthetic pipeline check requested; generating fixture data under data/results/synth/")
+            _synth()
+            runs = list_runs("synth")
+        else:
+            raise SystemExit(
+                f">> no real runs found for run_id={run_id!r}. "
+                "Expected at least one *.out.csv under data/results/. "
+                "Pass run_id=synth to explicitly generate the synthetic pipeline fixture."
+            )
 
     print(f">> found {len(runs)} run files across {len({r.scenario for r in runs})} scenarios")
     plot_steady(runs)

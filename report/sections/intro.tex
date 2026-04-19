@@ -32,17 +32,17 @@ endpoints under four scenarios.
   \item A reproducible benchmarking harness in which the same image is
         deployed to EC2, Fargate, and Lambda from the same Terraform
         codebase, runnable end-to-end on any AWS account
-        environment that the course uses (\cref{sec:design}).
+        environment that the course uses (Section~\ref{sec:design}).
   \item A measured comparison of throughput, p50/p95/p99 latency, and
         elasticity across the three paradigms with bootstrap confidence
-        intervals on every percentile (\cref{sec:results-steady}).
+        intervals on every percentile (Section~\ref{sec:results-steady}).
   \item A characterisation of Lambda cold-start behaviour for a 1\,GB
         container function and its impact on burst latency
         (Sections~\ref{sec:results-elasticity} and~\ref{sec:results-cold}).
   \item An analytic cost model, calibrated against the measured
         per-request latency, that yields explicit break-even points
         between the three paradigms and a Pareto front of
-        cost-versus-latency choices (\cref{sec:results-cost}).
+        cost-versus-latency choices (Section~\ref{sec:results-cost}).
 \end{enumerate}
 
 \paragraph{Headline findings.} (i)~In the regime we could sustain
@@ -57,14 +57,14 @@ single 0.5\,vCPU Fargate task saturated by 100\,RPS (p50 above 3\,s),
 and ECS service autoscaling at the default 30\,s cooldown was not
 fast enough to clear the queue inside our three-minute burst.
 (iv)~Combining the measured per-request latency with public April~2026
-us-east-1 pricing puts the Lambda crossover at roughly \textbf{17\,RPS}
-against EC2 and \textbf{19\,RPS} against Fargate.
+us-east-1 pricing puts the Lambda crossover at roughly \textbf{8\,RPS}
+against EC2 and \textbf{10\,RPS} against Fargate.
 
 The remainder of the paper is organised as follows.
-\Cref{sec:background} situates the three paradigms and their billing.
-\Cref{sec:design} describes the application and the unified deployment
-pipeline. \Cref{sec:methodology} explains the workload, metrics, and
-statistical procedure. \Cref{sec:results} reports steady-state,
+Section~\ref{sec:background} situates the three paradigms and their billing.
+Section~\ref{sec:design} describes the application and the unified deployment
+pipeline. Section~\ref{sec:methodology} explains the workload, metrics, and
+statistical procedure. Section~\ref{sec:results} reports steady-state,
 elastic, cold-start, and cost results.
 Sections~\ref{sec:discussion}--\ref{sec:conclusion} discuss
 limitations, related work, and conclude.

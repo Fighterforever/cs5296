@@ -88,29 +88,28 @@ class CostInput:
 
 
 def cost_ec2(c: CostInput, instances: float, instance_type: str = "t3.small", hours: float = 730) -> float:
-    """Monthly cost in USD: EC2 hours + ALB + DDB requests."""
-    compute = EC2_HOURLY[instance_type] * instances * hours
-    reqs = c.rps * 3600 * hours
-    ddb = reqs * (c.ratio_reads * DDB_PPR_READ + (1 - c.ratio_reads) * DDB_PPR_WRITE)
-    alb = ALB_HOURLY * hours
-    return compute + ddb + alb
+    """Monthly compute-only cost in USD. Shared ALB + DynamoDB are excluded
+    because they apply equally to all three paradigms and would merely shift
+    every curve upward by the same constant without changing break-even."""
+    return EC2_HOURLY[instance_type] * instances * hours
 
 
 def cost_fargate(c: CostInput, tasks: float, cpu_units: int = 512, memory_mb: int = 1024, hours: float = 730) -> float:
+    """Monthly compute-only cost in USD; excludes ALB + DDB (see cost_ec2)."""
     vcpu = cpu_units / 1024.0
     gb = memory_mb / 1024.0
-    compute = tasks * hours * (vcpu * FARGATE_VCPU_HOUR + gb * FARGATE_GB_HOUR)
-    reqs = c.rps * 3600 * hours
-    ddb = reqs * (c.ratio_reads * DDB_PPR_READ + (1 - c.ratio_reads) * DDB_PPR_WRITE)
-    alb = ALB_HOURLY * hours
-    return compute + ddb + alb
+    return tasks * hours * (vcpu * FARGATE_VCPU_HOUR + gb * FARGATE_GB_HOUR)
 
 
 def cost_lambda(c: CostInput, memory_mb: int = 1024, hours: float = 730, pc_instances: int = 0) -> float:
+    """Monthly compute-only cost in USD; excludes ALB + DDB (see cost_ec2).
+    Uses the measured median end-to-end latency as an upper-bound proxy for
+    Lambda billed duration (which is conservative: true billed duration is
+    strictly less than end-to-end latency because the latter also includes
+    ALB forwarding and the Web Adapter's local HTTP round-trip)."""
     reqs = c.rps * 3600 * hours
     avg_s = c.p50_ms / 1000.0
     gb = memory_mb / 1024.0
     exec_cost = reqs * (LAMBDA_REQ_USD + gb * avg_s * LAMBDA_GB_S_USD)
-    ddb = reqs * (c.ratio_reads * DDB_PPR_READ + (1 - c.ratio_reads) * DDB_PPR_WRITE)
     pc_cost = pc_instances * gb * LAMBDA_PC_GB_S_USD * 3600 * hours
-    return exec_cost + ddb + pc_cost
+    return exec_cost + pc_cost

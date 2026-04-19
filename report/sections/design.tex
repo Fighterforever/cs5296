@@ -25,7 +25,7 @@ all pass before deployment.
 
 \subsection{Unified deployment pipeline}
 
-\Cref{fig:arch} shows the topology. A \emph{single} container image
+Figure~\ref{fig:arch} shows the topology. A \emph{single} container image
 (\texttt{shortlink:v2}) is built once with \texttt{docker buildx} for
 \texttt{linux/amd64} and pushed to a shared ECR repository. The same
 image is then consumed by:

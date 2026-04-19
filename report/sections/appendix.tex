@@ -24,34 +24,39 @@ sources of this report, is available at:
 \end{itemize}
 
 \subsection{Reproducing every figure}
-\begin{lstlisting}[language=bash,basicstyle=\ttfamily\small]
-git clone https://github.com/Fighterforever/cs5296.git
-cd cs5296
+The top-level \texttt{Makefile} chains every step below into single
+targets; the raw form is given here so readers can run any step in
+isolation.
 
-# 1. configure AWS credentials for a profile of your choice
-export AWS_PROFILE=cs5296   # or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY
+\begingroup
+\small\ttfamily
+\setlength{\parindent}{0pt}
+\obeylines%
+\# 1. configure AWS credentials and create the stack
+export AWS\_PROFILE=cs5296
 cd infra/envs/benchmark
 cp example.tfvars terraform.tfvars
-tofu init && tofu apply -auto-approve
+tofu init \&\& tofu apply -auto-approve
 
-# 2. build & push the same container image to ECR
+\# 2. build and push the shared container image to ECR
 cd ../../../app
-ECR=$(cd ../infra/envs/benchmark && tofu output -raw ecr_repo_url)
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin $ECR
-docker buildx build --platform linux/amd64 --push -t $ECR:v2 .
+ECR=\$(cd ../infra/envs/benchmark \&\& tofu output -raw ecr\_repo\_url)
+aws ecr get-login-password --region us-east-1 \textbar{} docker login --username AWS --password-stdin \$ECR
+docker buildx build --platform linux/amd64 --push -t \$ECR:v2 .
 
-# 3. drive the benchmark from a co-located t3.small k6 worker
-cd ..
-EC2_URL=$(cd infra/envs/benchmark && tofu output -raw ec2_url) \
-FARGATE_URL=... LAMBDA_URL=... bash benchmark/run.sh
+\# 3. drive the benchmark from a co-located t3.small k6 worker
+cd ../..
+EC2\_URL=... FARGATE\_URL=... LAMBDA\_ALB\_URL=... bash benchmark/run.sh
 
-# 4. build all figures and tables
-python -m analysis.build_figures
+\# 4. regenerate every figure and summary CSV from the raw k6 output
+python -m analysis.build\_figures \textless{}RUN\_ID\textgreater{}
 
-# 5. compile the report
+\# 5. compile the LaTeX report
 make -C report
-\end{lstlisting}
+\endgroup
+
+\medskip
+\noindent\textbf{Shortcut (same pipeline via Makefile):} \texttt{make up \&\& make image \&\& make bench \&\& make analyze \&\& make report}. To tear down, \texttt{make nuke} destroys every resource and sweeps orphan ENIs/EIPs.
 
 \subsection{Validation and expected output}
 After step~3 there is one JSON summary and one CSV trace file per
