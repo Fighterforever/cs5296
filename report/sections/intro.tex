@@ -45,18 +45,20 @@ endpoints under four scenarios.
         cost-versus-latency choices (\cref{sec:results-cost}).
 \end{enumerate}
 
-\paragraph{Headline findings.} (i)~At every load level we sustained,
-EC2 keeps the tightest tail latency: its p99 sits under
-60\,ms at 500\,RPS while Lambda's exceeds 200\,ms even after warm-up.
-(ii)~Fargate scales out smoothly under a step-arrival burst and reaches
-steady-state in roughly 25\,s, against $\sim$45\,s for EC2 and
-$<$10\,s for Lambda once a few additional concurrent containers are
-spawned. (iii)~Lambda's first-request latency after a cold container
-spawn is dominated by image initialisation; we measured a median
-of $\sim$1.4\,s and a p99 of $\sim$11\,s for our 1\,GB container.
-(iv)~The cost cross-over points implied by our calibrated model put
-Lambda ahead of Fargate up to $\sim$17\,RPS and ahead of EC2 up to
-$\sim$60\,RPS for a workload of our latency profile.
+\paragraph{Headline findings.} (i)~In the regime we could sustain
+within a new AWS account's default service quotas, Lambda delivered
+the tightest \emph{and} most stable distribution: p95~$\approx$~40\,ms
+and p99~$\approx$~52\,ms across 25--75\,RPS, with no significant
+broadening as offered rate grew. (ii)~A single \texttt{t3.small} EC2
+ASG kept a 13\,ms median up to 200\,RPS but its tail widened sharply
+once the burstable-credit budget was depleted, with p99 reaching 2\,s
+at 200\,RPS and the median itself blowing out at 400\,RPS. (iii)~A
+single 0.5\,vCPU Fargate task saturated by 100\,RPS (p50 above 3\,s),
+and ECS service autoscaling at the default 30\,s cooldown was not
+fast enough to clear the queue inside our three-minute burst.
+(iv)~Combining the measured per-request latency with public April~2026
+us-east-1 pricing puts the Lambda crossover with both provisioned-capacity
+models at roughly \textbf{20\,RPS} of sustained traffic.
 
 The remainder of the paper is organised as follows.
 \Cref{sec:background} situates the three paradigms and their billing.

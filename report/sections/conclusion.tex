@@ -3,14 +3,16 @@
 
 We deployed an identical container image of a stateless URL-shortener
 to AWS EC2, ECS Fargate, and AWS Lambda and benchmarked all three
-under a controlled workload from a co-located k6 worker. EC2 keeps
-the lowest tail latency at every measured load; Fargate offers the
-best balance between elasticity and operational cost; Lambda absorbs
-sudden bursts the fastest but pays a measurable cold-start tax that
-matters mostly for the first request after an idle gap. Combining the
-measured per-request latency with public April~2026 us-east-1 pricing
-gives explicit break-even points (Lambda dominates Fargate up to
-$\sim$17\,RPS and EC2 up to $\sim$60\,RPS for our 1\,GB workload).
-The full pipeline --- Terraform, container build, k6 scenarios,
-analysis, and figure generation --- is reproducible end-to-end inside
-a standard personal AWS account with a single \texttt{make} target.
+under a controlled workload from a co-located k6 worker in the same
+availability zone. In our measured regime Lambda delivered the
+tightest tail (p95~$\approx$~40\,ms across 25--75\,RPS), a single
+\texttt{t3.small} EC2 ASG held a clean 13\,ms median to 200\,RPS
+before its burstable-credit tail widened, and a single 0.5\,vCPU
+Fargate task could not absorb even 100\,RPS of Python work. Combining
+the measured per-request latency with public April~2026 us-east-1
+pricing gives a single break-even crossover at roughly 20\,RPS:
+below it, Lambda's no-idle billing is cheapest; above it,
+pre-provisioned compute wins. The full pipeline --- Terraform,
+container build, k6 scenarios, analysis, and figure generation ---
+reproduces every figure end-to-end on a standard personal AWS account
+with a single \texttt{make} target.

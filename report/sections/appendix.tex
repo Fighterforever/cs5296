@@ -28,9 +28,10 @@ sources of this report, is available at:
 git clone https://github.com/Fighterforever/cs5296.git
 cd cs5296
 
-# 1. provision the three deployments behind a single ALB
+# 1. configure AWS credentials for a profile of your choice
+export AWS_PROFILE=cs5296   # or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY
 cd infra/envs/benchmark
-echo 'account_id = "<YOUR ACCOUNT ID>"' > terraform.tfvars
+cp example.tfvars terraform.tfvars
 tofu init && tofu apply -auto-approve
 
 # 2. build & push the same container image to ECR
