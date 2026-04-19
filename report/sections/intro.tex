@@ -57,8 +57,8 @@ single 0.5\,vCPU Fargate task saturated by 100\,RPS (p50 above 3\,s),
 and ECS service autoscaling at the default 30\,s cooldown was not
 fast enough to clear the queue inside our three-minute burst.
 (iv)~Combining the measured per-request latency with public April~2026
-us-east-1 pricing puts the Lambda crossover with both provisioned-capacity
-models at roughly \textbf{20\,RPS} of sustained traffic.
+us-east-1 pricing puts the Lambda crossover at roughly \textbf{17\,RPS}
+against EC2 and \textbf{19\,RPS} against Fargate.
 
 The remainder of the paper is organised as follows.
 \Cref{sec:background} situates the three paradigms and their billing.

@@ -111,12 +111,12 @@ note that the effect is well-characterised elsewhere in the literature
 \label{sec:results-cost}
 
 \Cref{fig:cost} evaluates \cref{eq:cost} at the measured per-request
-execution times. The crossover between Lambda and the two
-provisioned-capacity models converges at roughly \textbf{20\,RPS} of
-sustained traffic: below that rate, Lambda's no-idle billing is cheapest
-because EC2 and Fargate both pay for idle capacity around the clock;
-above it, a single provisioned instance or task amortises across enough
-requests that the flat hourly rate wins. The exact crossover depends on
+execution times. Linearly-interpolated break-even points sit at
+\textbf{17\,RPS} against EC2 and \textbf{19\,RPS} against Fargate.
+Below these rates, Lambda's no-idle billing is cheapest because EC2 and
+Fargate both pay for idle capacity around the clock; above them, a
+single provisioned instance or task amortises across enough requests
+that the flat hourly rate wins. The exact crossover depends on
 three levers that our Terraform variables expose:
 instance/task size, target utilisation before scale-out, and
 $\overline{t}$. In the Pareto view of \cref{fig:pareto}, Lambda is

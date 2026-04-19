@@ -188,9 +188,16 @@ def plot_cost_pareto():
     ax.set_ylabel("Monthly cost (USD)")
 
     # break-even points: ec2 == lambda, fargate == lambda
+    # linearly interpolate the exact crossover rather than snapping to the
+    # previous grid point (the log-spaced grid otherwise undershoots by ~20%)
     def cross(a, b):
         idx = np.where(np.diff(np.sign(a - b)))[0]
-        return rps_grid[idx[0]] if len(idx) else None
+        if len(idx) == 0:
+            return None
+        i = idx[0]
+        x0, x1 = rps_grid[i], rps_grid[i + 1]
+        f0, f1 = a[i] - b[i], a[i + 1] - b[i + 1]
+        return x0 - f0 * (x1 - x0) / (f1 - f0)
     lb_ec2 = cross(lb_1, ec2_1)
     lb_fg = cross(lb_1, fg_1)
     if lb_ec2:
