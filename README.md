@@ -8,12 +8,14 @@ Fargate** (managed containers), and **Lambda** (serverless functions) — and ru
 a controlled benchmark to compare them on four axes:
 
 1. Steady-state throughput and tail latency (p50/p95/p99) under increasing
-   concurrency.
+   offered RPS.
 2. Elasticity: time-to-steady-state under step-arrival bursts.
-3. Cold-start behaviour for Lambda across memory sizes, with and without
-   provisioned concurrency.
+3. Lambda warm-retention probe at fixed 1 GB / no reserved concurrency.
+   A full memory-sweep plus provisioned-concurrency study is flagged as
+   future work in the report's *Threats to Validity* section.
 4. Cost per million requests and the break-even points between the three
-   paradigms.
+   paradigms, using a compute-only model that excludes shared costs
+   (ALB, DynamoDB) so they cancel across the three paradigms.
 
 The whole stack is reproducible: Terraform for infrastructure, a single
 container image (Lambda Web Adapter fronts the same FastAPI app on all three
@@ -34,13 +36,18 @@ data/         raw benchmark output (git-ignored)
 ## Quick start
 
 ```bash
-# build + push image, deploy all three stacks, run the benchmark, render figures
-make up        # provision
-make bench     # load test
-make analyze   # generate figures
-make report    # build PDF
-make down      # tear everything down
+# prereqs: docker, opentofu (or terraform), aws cli v2, python 3.12, k6 v1
+export AWS_PROFILE=<your-profile>
+
+make up        # tofu apply: 39 AWS resources in ~7 min
+make image     # docker buildx + push shared container image to ECR
+make bench     # k6 matrix: steady / burst / cold-start / mixed (~60 min)
+make analyze   # regenerate 5 figures + 4 summary CSVs from raw k6 output
+make report    # compile LaTeX report PDF
+make nuke      # tofu destroy + sweep orphan ENIs/EIPs
 ```
+
+Typical end-to-end AWS spend for one full matrix run: **under USD 5**.
 
 Detailed instructions live in `docs/` and in the Artifact Appendix of the
 report (`report/main.pdf`).
